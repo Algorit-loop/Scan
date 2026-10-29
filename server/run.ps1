@@ -15,7 +15,7 @@ $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
     Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
     Select-Object -ExpandProperty IPAddress
 Write-Host "Server dang chay tai:" -ForegroundColor Green
-foreach ($ip in $ips) { Write-Host "  http://${ip}:8000/health" }
+foreach ($ip in $ips) { Write-Host "  http://${ip}:8000/   (trang web kiem tra detect; /health cho app)" }
 Write-Host "Lan dau chay, Windows co the hoi cho phep Python qua tuong lua: chon 'Private networks'." -ForegroundColor Yellow
 
 Push-Location $here

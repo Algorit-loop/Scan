@@ -1,5 +1,23 @@
 # Scan Trợ Giúp
 
+> **Trạng thái hiện tại:** đang tập trung vào server (`server/`). App tạm thời chỉ có danh sách ảnh và camera chụp ảnh; việc detect sẽ do server đảm nhận. Các module cũ (giọng nói, hướng dẫn, lưu trữ, màn chi tiết, kết nối server, detect trên máy) được để ở `src/_disabled/` — không được build, không lint, không typecheck — để gắn lại sau. Phần mô tả bên dưới là thiết kế cũ.
+
+## Server (đang phát triển)
+
+```
+server/app/
+  detection/        các phiên bản detect, mỗi phiên bản một package
+    base.py           hợp đồng kết quả (found, corners, bbox, touches, confidence, method)
+    v1/               detect v1: LSD → gộp đường → dựng tứ giác → chấm điểm (theo document/detect)
+    metrics.py        chỉ số Jaccard để đo chất lượng
+  routes/web.py     trang web kiểm tra: upload ảnh, chạy detect, lưu và xem lại kết quả
+  routes/mobile.py  API cho app: /ws, /warp, /health
+  storage.py        lưu kết quả vào server/data/detections/<id>/ (ảnh gốc, ảnh có khung, ảnh nắn phẳng, result.json)
+```
+
+- **Chạy:** `.\serverun.ps1`, rồi mở `http://localhost:8000/` để upload ảnh kiểm tra. Test: `server\.venv\Scripts\python -m pytest` (trong thư mục `server`).
+- **Thêm phiên bản detect mới (v2...):** tạo package `app/detection/v2/` có một lớp với `version`, `name`, `description`, `detect(img)`; rồi `register(...)` trong `app/detection/__init__.py`. Trang web tự hiện phiên bản mới trong danh sách chọn; app chọn bằng trường `version` trong tin nhắn WebSocket (mặc định `DEFAULT_VERSION`).
+
 App Expo giúp người khiếm thị quét tài liệu: hướng dẫn bằng giọng nói tiếng Việt và rung (trái/phải/lên/xuống/gần/xa) cho tới khi tài liệu nằm đúng khung, sau đó **chạm bất kỳ đâu** để chụp. Ảnh được lưu vào danh sách trong app.
 
 Thiết kế chi tiết: [PLAN.md](PLAN.md).

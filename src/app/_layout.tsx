@@ -16,12 +16,11 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Tài liệu đã quét' }} />
+        <Stack.Screen name="index" options={{ title: 'Ảnh đã chụp' }} />
         <Stack.Screen
           name="scan"
           options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade' }}
         />
-        <Stack.Screen name="doc/[id]" options={{ title: 'Tài liệu' }} />
       </Stack>
     </PermissionGate>
   );

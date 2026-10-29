@@ -26,7 +26,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Ứng dụng cần camera để quét tài liệu và hướng dẫn bạn căn chỉnh bằng giọng nói.",
+          "cameraPermission": "Ứng dụng cần camera để chụp tài liệu.",
           "recordAudioAndroid": false
         }
       ]

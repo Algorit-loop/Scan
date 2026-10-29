@@ -52,3 +52,6 @@ yarn-error.*
 document/
 AGENTS.md
 PLAN.md
+# ket qua detect cua trang web kiem tra
+server/data/*
+!server/data/.gitkeep

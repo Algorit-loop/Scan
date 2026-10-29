@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiểm tra detect tài liệu</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9 9h6M9 9v6M23 9h-6M23 9v6M9 23h6M9 23v-6M23 23h-6M23 23v-6' stroke='white' stroke-width='2.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <button class="icon-btn" id="paneBtn" type="button" aria-label="Ẩn/hiện danh sách ảnh" title="Ẩn/hiện danh sách ảnh">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 4v16" stroke="currentColor" stroke-width="1.8"/></svg>
+    </button>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M9 9h6M9 9v6M23 9h-6M23 9v6M9 23h6M9 23v-6M23 23h-6M23 23v-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
+      <div class="brand-text">
+        <h1>Kiểm tra detect tài liệu</h1>
+        <p class="muted small">Upload ảnh → chạy detect → xem 4 góc, lưu lại để so sánh</p>
+      </div>
+    </div>
+    <label class="version">
+      <span class="muted small">Phiên bản detect</span>
+      <select id="version"></select>
+    </label>
+  </header>
+
+  <div class="shell" id="shell">
+    <aside class="pane" id="pane" aria-label="Ảnh đã detect">
+      <div class="pane-head">
+        <h2>Ảnh đã detect <span class="count" id="count"></span></h2>
+        <button class="icon-btn sm" id="paneCollapse" type="button" aria-label="Thu gọn danh sách" title="Thu gọn danh sách">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path class="chev" d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="history" id="history"></div>
+      <p class="muted small pad" id="historyEmpty">Chưa có lượt detect nào.</p>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+
+    <main class="stage" id="stage">
+      <label class="drop" id="drop" tabindex="0">
+        <input type="file" id="file" accept="image/*" multiple hidden>
+        <svg class="drop-icon" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="drop-text">
+          <strong id="dropTitle">Kéo ảnh vào đây, bấm để chọn, hoặc dán (Ctrl+V)</strong>
+          <span class="muted small" id="dropHint">Chọn nhiều ảnh cùng lúc được. JPG, PNG, WebP — tối đa 40 MB/ảnh.</span>
+        </div>
+        <span class="spinner" id="busy" hidden></span>
+      </label>
+      <div id="notice" class="notice" hidden role="alert"></div>
+
+      <div class="viewer card" id="viewer" hidden>
+        <div class="toolbar">
+          <div class="seg" id="tabs" role="tablist">
+            <button role="tab" data-tab="original" class="on">Ảnh gốc</button>
+            <button role="tab" data-tab="warped">Đã nắn phẳng</button>
+          </div>
+          <div class="toggles" id="toggles">
+            <label><input type="checkbox" id="showQuad" checked> Khung</label>
+            <label><input type="checkbox" id="showLines"> Đường thẳng tìm được</label>
+          </div>
+          <button class="btn zoom" id="zoom" type="button" title="Phóng to (hoặc bấm vào ảnh)">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Phóng to
+          </button>
+        </div>
+        <div class="canvas" id="canvas"></div>
+      </div>
+
+      <div class="empty card" id="empty">
+        <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><rect x="14" y="8" width="36" height="48" rx="4" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M22 22h20M22 31h20M22 40h12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <p><strong>Chưa chọn ảnh nào</strong></p>
+        <p class="muted">Upload một ảnh, hoặc chọn một ảnh trong danh sách bên trái. Kết quả được lưu trong <code>server/data/detections</code>.</p>
+      </div>
+    </main>
+
+    <aside class="info-pane" id="side">
+      <div class="card" id="info" hidden></div>
+    </aside>
+  </div>
+
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Xem ảnh phóng to">
+    <button class="lb-close" id="lbClose" type="button" aria-label="Đóng">×</button>
+    <div class="lb-body" id="lbBody"></div>
+  </div>
+  <div class="dropveil" id="veil" hidden><div>Thả ảnh vào đây để detect</div></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

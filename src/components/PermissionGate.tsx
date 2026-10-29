@@ -2,8 +2,6 @@ import { useCameraPermissions } from 'expo-camera';
 import { type ReactNode, useEffect, useRef } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { initVoice, say } from '../feedback/announcer';
-import { MESSAGES } from '../guidance/messages.vi';
 import { colors, font, MIN_TOUCH } from '../theme';
 
 /**
@@ -15,14 +13,9 @@ export function PermissionGate({ children }: { children: ReactNode }) {
   const asked = useRef(false);
 
   useEffect(() => {
-    initVoice();
-  }, []);
-
-  useEffect(() => {
     if (!permission || permission.granted || asked.current) return;
     asked.current = true;
     if (permission.canAskAgain) requestPermission();
-    else say(MESSAGES.permissionExplain, { important: true });
   }, [permission, requestPermission]);
 
   if (!permission) {
@@ -44,7 +37,7 @@ export function PermissionGate({ children }: { children: ReactNode }) {
       <Text style={styles.body}>
         {blocked
           ? 'Bạn đã từ chối quyền camera. Hãy mở Cài đặt và bật quyền Camera cho ứng dụng.'
-          : 'Ứng dụng dùng camera để quét tài liệu và hướng dẫn bạn căn chỉnh bằng giọng nói.'}
+          : 'Ứng dụng dùng camera để chụp tài liệu.'}
       </Text>
       <Pressable
         style={({ pressed }) => [styles.button, pressed && styles.pressed]}
