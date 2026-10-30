@@ -1,0 +1,243 @@
+<nav class="doc-toc" id="docToc" aria-label="Mục lục tài liệu"></nav>
+<div class="doc-main" id="docMain">
+<article class="doc-body">
+
+<section class="doc-sec" id="tong-quan" data-group="Giới thiệu" data-title="Tổng quan">
+  <p class="eyebrow">Document · dành cho admin / dev</p>
+  <h2>Tổng quan dự án</h2>
+  <p class="lead"><b>Scan Trợ Giúp</b> là app quét tài liệu cho người khiếm thị. Người dùng cuối <b>chỉ dùng app</b>. Mọi xử lý ảnh nặng (tìm 4 góc tài liệu, nắn phẳng) nằm ở <b>server Python (FastAPI + OpenCV)</b>. Trang web bạn đang xem cũng nằm trên server, dành cho <b>admin/dev</b>: hiện là nơi test detect, đọc tài liệu dự án, và sẽ phát triển thành web quản lý (thiết bị kết nối, các yêu cầu gửi lên).</p>
+
+  <div class="stats" id="docStats"></div>
+
+  <figure class="fig">
+    <svg viewBox="0 0 880 360" role="img" aria-label="Kiến trúc: app và trang web gọi server FastAPI; server gồm routes, detection, imaging, storage" class="sv">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="sv-fill-muted"/></marker></defs>
+      <rect class="sv-zone" x="262" y="14" width="602" height="332" rx="16"/>
+      <text class="sv-zone-t" x="280" y="38">Server · FastAPI + OpenCV · server/app/</text>
+
+      <g class="sv-node"><rect class="sv-box c-app" x="18" y="52" width="176" height="104" rx="12"/>
+        <text class="sv-t" x="106" y="84" text-anchor="middle">App · người dùng cuối</text>
+        <text class="sv-s" x="106" y="106" text-anchor="middle">Expo · React Native</text>
+        <text class="sv-s" x="106" y="124" text-anchor="middle">camera + danh sách ảnh</text></g>
+      <g class="sv-node"><rect class="sv-box c-web" x="18" y="204" width="176" height="104" rx="12"/>
+        <text class="sv-t" x="106" y="236" text-anchor="middle">Web admin · dev</text>
+        <text class="sv-s" x="106" y="258" text-anchor="middle">test detect · Document</text>
+        <text class="sv-s" x="106" y="276" text-anchor="middle">(sau này: quản lý)</text></g>
+
+      <g class="sv-node"><rect class="sv-box c-api" x="284" y="62" width="152" height="64" rx="10"/>
+        <text class="sv-t" x="360" y="90" text-anchor="middle">routes/mobile</text>
+        <text class="sv-s" x="360" y="108" text-anchor="middle">/ws · /warp · /health</text></g>
+      <g class="sv-node"><rect class="sv-box c-api" x="284" y="232" width="152" height="64" rx="10"/>
+        <text class="sv-t" x="360" y="260" text-anchor="middle">routes/web</text>
+        <text class="sv-s" x="360" y="278" text-anchor="middle">/ · /api/detections</text></g>
+
+      <g class="sv-node"><rect class="sv-box c-det" x="500" y="128" width="168" height="104" rx="10"/>
+        <text class="sv-t" x="584" y="160" text-anchor="middle">detection/</text>
+        <text class="sv-s" x="584" y="180" text-anchor="middle">registry → v1 (LSD)</text>
+        <text class="sv-s" x="584" y="198" text-anchor="middle">base · metrics</text>
+        <text class="sv-s" x="584" y="216" text-anchor="middle">thêm v2, v3… dễ dàng</text></g>
+
+      <g class="sv-node"><rect class="sv-box c-infra" x="712" y="62" width="136" height="64" rx="10"/>
+        <text class="sv-t" x="780" y="90" text-anchor="middle">imaging</text>
+        <text class="sv-s" x="780" y="108" text-anchor="middle">decode · warp · vẽ</text></g>
+      <g class="sv-node"><rect class="sv-box c-infra" x="712" y="232" width="136" height="64" rx="10"/>
+        <text class="sv-t" x="780" y="260" text-anchor="middle">storage</text>
+        <text class="sv-s" x="780" y="278" text-anchor="middle">ảnh + result.json</text></g>
+      <g class="sv-node"><rect class="sv-box c-data" x="712" y="312" width="136" height="26" rx="8"/>
+        <text class="sv-s" x="780" y="329" text-anchor="middle">server/data/detections/</text></g>
+
+      <path class="sv-arrow" d="M194 94H284" marker-end="url(#ar)"/>
+      <text class="sv-l" x="239" y="84" text-anchor="middle">WS · HTTP</text>
+      <path class="sv-arrow" d="M194 256H284" marker-end="url(#ar)"/>
+      <text class="sv-l" x="239" y="246" text-anchor="middle">HTTP</text>
+      <path class="sv-arrow" d="M436 100C470 100 470 150 500 160" marker-end="url(#ar)"/>
+      <path class="sv-arrow" d="M436 262C470 262 470 214 500 204" marker-end="url(#ar)"/>
+      <path class="sv-arrow dash" d="M436 82H712" marker-end="url(#ar)"/>
+      <text class="sv-l" x="574" y="74" text-anchor="middle">nắn phẳng (warp)</text>
+      <path class="sv-arrow dash" d="M436 276H712" marker-end="url(#ar)"/>
+      <text class="sv-l" x="574" y="294" text-anchor="middle">lưu kết quả</text>
+      <path class="sv-arrow" d="M780 296V312" marker-end="url(#ar)"/>
+    </svg>
+    <figcaption>App và web admin dùng chung một bộ detect trên server. Thêm phiên bản mới chỉ cần đăng ký vào registry; web test được ngay, app chọn bằng trường <code>version</code>.</figcaption>
+  </figure>
+</section>
+
+<section class="doc-sec" id="module" data-group="Giới thiệu" data-title="Các module">
+  <p class="eyebrow">Mục 1</p>
+  <h2>Các module và việc chúng làm</h2>
+  <p class="lead">Bấm vào một module để xem nó <b>làm gì</b> và <b>thực hiện như thế nào</b>. Lọc theo tầng ở thanh bên dưới.</p>
+  <div class="chips" id="modFilter" role="group" aria-label="Lọc theo tầng"></div>
+  <div class="mod-grid" id="modGrid"></div>
+  <div class="mod-detail card" id="modDetail" aria-live="polite"></div>
+</section>
+
+<section class="doc-sec" id="pipeline" data-group="Thuật toán detect" data-title="Pipeline detect v1">
+  <p class="eyebrow">Mục 2</p>
+  <h2>Detect v1: từ ảnh đến 4 góc</h2>
+  <p class="lead">Thuật toán cổ điển, không cần model AI: tìm các đường thẳng dài, dựng tứ giác từ giao điểm của chúng, rồi chấm điểm để chọn tứ giác tốt nhất. Chọn từng bước để xem ảnh biến đổi ra sao (cảnh minh họa tổng hợp).</p>
+  <div class="pipe card">
+    <div class="pipe-steps" id="pipeSteps" role="tablist" aria-label="Các bước"></div>
+    <div class="pipe-body">
+      <div class="pipe-view"><svg id="pipeSvg" viewBox="0 0 400 300" role="img" aria-label="Minh họa từng bước detect"></svg></div>
+      <div class="pipe-text" id="pipeText" aria-live="polite"></div>
+    </div>
+    <div class="pipe-nav">
+      <button class="btn" id="pipePrev" type="button">← Bước trước</button>
+      <span class="muted small" id="pipePos"></span>
+      <button class="btn" id="pipeNext" type="button">Bước sau →</button>
+    </div>
+  </div>
+</section>
+
+<section class="doc-sec" id="cham-diem" data-group="Thuật toán detect" data-title="Chấm điểm">
+  <p class="eyebrow">Mục 3</p>
+  <h2>Cách chấm điểm một tứ giác</h2>
+  <p class="lead">Mỗi cạnh được chấm bằng <code>độ phủ cạnh × tương phản trong/ngoài</code>. Kéo các thanh trượt để thấy vì sao một cạnh yếu kéo cả tứ giác xuống. Máy tính giả định 4 cạnh dài bằng nhau và bỏ qua hệ số kích thước (0.9–1.0); "chắc chắn" là ngưỡng ≥ 0.6 mà web dùng, không phải của server.</p>
+  <div class="calc card" id="calc"></div>
+  <div class="formula">
+    <div><span class="f-k">side</span> = phủ × tương phản</div>
+    <div><span class="f-k">tổng</span> = 0.65 × trung bình(side, theo độ dài) + 0.35 × side yếu nhất</div>
+    <div><span class="f-k">điểm</span> = tổng × đồng nhất màu × hệ số kích thước (0.9 – 1.0)</div>
+    <div><span class="f-k">độ tin cậy</span> = min(1, điểm / 0.8)</div>
+  </div>
+</section>
+
+<section class="doc-sec" id="du-phong" data-group="Thuật toán detect" data-title="Dự phòng & ngưỡng">
+  <p class="eyebrow">Mục 4</p>
+  <h2>Luồng quyết định và các ngưỡng</h2>
+  <p class="lead">Detect chạy theo thứ bậc từ rẻ đến đắt: chỉ khi kết quả chưa đủ tốt mới tốn thêm thời gian cho GrabCut.</p>
+  <figure class="fig">
+    <svg viewBox="0 0 880 330" role="img" aria-label="Sơ đồ quyết định của detect v1" class="sv" id="flowSvg"></svg>
+    <figcaption>Số điểm trong sơ đồ pipeline chỉ để minh họa. Ngưỡng nằm trong <code>detection/v1/params.py</code>. Mọi đơn vị pixel tính trên ảnh đã thu nhỏ (cạnh dài 640 px).</figcaption>
+  </figure>
+  <div class="ptable-wrap"><table class="ptable" id="paramTable"></table></div>
+</section>
+
+<section class="doc-sec" id="luong-du-lieu" data-group="Server" data-title="Luồng dữ liệu & API">
+  <p class="eyebrow">Mục 5</p>
+  <h2>Luồng dữ liệu và API</h2>
+  <p class="lead">Ba luồng chính. Chọn luồng để xem thứ tự thông điệp giữa các thành phần.</p>
+  <div class="chips" id="seqTabs" role="tablist" aria-label="Chọn luồng"></div>
+  <figure class="fig scroll-x"><div id="seqMount"></div><figcaption id="seqCap"></figcaption></figure>
+  <div class="ptable-wrap"><table class="ptable" id="apiTable"></table></div>
+</section>
+
+<section class="doc-sec" id="du-lieu" data-group="Server" data-title="Lưu trữ & hợp đồng">
+  <p class="eyebrow">Mục 6</p>
+  <h2>Lưu trữ và hợp đồng kết quả</h2>
+  <p class="lead">Mỗi lượt detect của trang web được lưu thành một thư mục riêng. Định dạng kết quả giữ nguyên với app cũ; phiên bản detect được phép thêm trường phụ (như <code>debug</code>) vì app bỏ qua trường lạ.</p>
+  <div class="two">
+    <div class="card pad-l">
+      <h3>Thư mục lưu</h3>
+      <div class="tree" id="tree"></div>
+    </div>
+    <div class="card pad-l">
+      <h3>Thứ tự 4 góc &amp; chạm mép</h3>
+      <svg viewBox="0 0 300 230" class="sv sv-sm" role="img" aria-label="Thứ tự góc TL, TR, BR, BL và vùng chạm mép">
+        <rect class="sv-box" x="10" y="10" width="280" height="210" rx="8"/>
+        <rect class="sv-margin" x="10" y="10" width="280" height="210" rx="8"/>
+        <rect x="16" y="16" width="268" height="198" rx="5" class="sv-inner"/>
+        <polygon class="sv-quad" points="62,48 238,62 252,176 48,164"/>
+        <g class="sv-corner"><circle cx="62" cy="48" r="7"/><circle cx="238" cy="62" r="7"/><circle cx="252" cy="176" r="7"/><circle cx="48" cy="164" r="7"/></g>
+        <g class="sv-l"><text x="74" y="46">0 · TL</text><text x="236" y="46" text-anchor="end">1 · TR</text><text x="244" y="196" text-anchor="end">2 · BR</text><text x="58" y="186">3 · BL</text></g>
+        <text class="sv-s" x="150" y="27" text-anchor="middle">vùng 1.5% sát mép = "chạm mép"</text>
+      </svg>
+      <p class="muted small">Góc chuẩn hóa 0..1 theo thứ tự <b>TL → TR → BR → BL</b>. <code>touches</code> báo cạnh nào của tứ giác đã chạm (≤ 1.5%) mép ảnh — logic hướng dẫn cũ của app (đang tắt) dùng nó để bảo người dùng lùi máy ra.</p>
+    </div>
+  </div>
+  <div class="two">
+    <div class="card pad-l"><h3>found = true</h3><pre class="code" id="jsonFound"></pre></div>
+    <div class="card pad-l"><h3>found = false</h3><pre class="code" id="jsonNot"></pre></div>
+  </div>
+</section>
+
+<section class="doc-sec" id="web" data-group="Giao diện" data-title="Web admin">
+  <p class="eyebrow">Mục 7</p>
+  <h2>Web admin (server/app/web)</h2>
+  <p class="lead">Web chạy ngay trên server, thuần HTML/CSS/JS, không framework hay bước build; file được FastAPI phục vụ dưới <code>/static</code>. Hiện có 2 tab; cấu trúc tab để mở rộng dần thành web quản lý.</p>
+  <div class="two">
+    <figure class="fig">
+      <svg viewBox="0 0 520 300" class="sv" role="img" aria-label="Bố cục web admin: thanh tab, tab Kiểm tra detect gồm danh sách, khung xem, thông tin">
+        <rect class="sv-box" x="4" y="4" width="512" height="292" rx="12"/>
+        <rect class="sv-box c-api" x="4" y="4" width="512" height="40" rx="12"/>
+        <text class="sv-t" x="22" y="29">Scan Admin</text>
+        <rect class="sv-box c-ok" x="130" y="12" width="120" height="24" rx="12"/><text class="sv-s" x="190" y="28" text-anchor="middle">Kiểm tra detect</text>
+        <rect class="sv-box" x="258" y="12" width="90" height="24" rx="12"/><text class="sv-s" x="303" y="28" text-anchor="middle">Document</text>
+        <rect class="sv-box dashbox" x="356" y="12" width="150" height="24" rx="12"/><text class="sv-s" x="431" y="28" text-anchor="middle">Thiết bị · Yêu cầu…</text>
+        <rect class="sv-box c-app" x="14" y="54" width="104" height="232" rx="8"/>
+        <text class="sv-t" x="66" y="78" text-anchor="middle">Danh sách</text>
+        <g class="sv-s"><rect class="sv-thumb" x="24" y="92" width="84" height="34" rx="6"/><rect class="sv-thumb" x="24" y="134" width="84" height="34" rx="6"/><rect class="sv-thumb" x="24" y="176" width="84" height="34" rx="6"/></g>
+        <rect class="sv-box c-det" x="128" y="54" width="248" height="232" rx="8"/>
+        <text class="sv-t" x="252" y="78" text-anchor="middle">Khung xem</text>
+        <rect class="sv-thumb" x="148" y="92" width="208" height="150" rx="6"/>
+        <polygon class="sv-quad" points="176,110 330,118 338,222 168,214"/>
+        <text class="sv-s" x="252" y="268" text-anchor="middle">Gốc · Đã nắn phẳng · Khung · Đường thẳng</text>
+        <rect class="sv-box c-infra" x="386" y="54" width="120" height="232" rx="8"/>
+        <text class="sv-t" x="446" y="78" text-anchor="middle">Thông tin</text>
+        <g class="sv-s"><text x="398" y="104">Độ tin cậy</text><text x="398" y="126">Thời gian xử lý</text><text x="398" y="148">Cạnh chạm mép</text><text x="398" y="170">Gợi ý chụp lại</text><text x="398" y="192">Xóa · Tải về</text></g>
+      </svg>
+      <figcaption>Nét đứt = chưa làm, thuộc hướng phát triển (mục 11).</figcaption>
+    </figure>
+    <ul class="feat">
+      <li><b>Tab Kiểm tra detect</b> — upload ảnh (chọn nhiều, kéo-thả, dán Ctrl+V), chạy detect, xem 4 góc, bật lớp "đường thẳng tìm được" (vẽ từ <code>debug.lines</code>). Ảnh gửi dạng byte thô.</li>
+      <li><b>Lịch sử để so sánh</b> — mỗi lượt lưu trên server; chọn phiên bản detect trên thanh trên; ←/→ duyệt nhanh; <code>#&lt;id&gt;</code> mở thẳng một kết quả.</li>
+      <li><b>Cột thông tin</b> — độ tin cậy, thời gian decode/detect, cạnh chạm mép, điểm từng cạnh.</li>
+      <li><b>Tab Document</b> — tài liệu này; nạp lười khi mở lần đầu, <code>#docs/&lt;mục&gt;</code> mở thẳng một mục.</li>
+      <li><b>Responsive, chế độ tối</b> — danh sách thu gọn hoặc thành ngăn kéo trên điện thoại.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="doc-sec" id="app" data-group="Giao diện" data-title="App (người dùng)">
+  <p class="eyebrow">Mục 8</p>
+  <h2>App của người dùng</h2>
+  <p class="lead">Người dùng cuối chỉ chạm tới app. Hiện app rất đơn giản — <b>chưa có logic detect</b>, việc đó do server đảm nhận.</p>
+  <div class="two">
+    <div class="card pad-l"><h3><span class="dotp ok"></span>Đang có</h3>
+      <div class="flow-v" id="appLive"></div></div>
+    <div class="card pad-l"><h3>Luồng sử dụng hiện tại</h3>
+      <svg viewBox="0 0 330 170" class="sv sv-sm" id="appFlow" role="img" aria-label="Xin quyền camera, danh sách ảnh, mở camera, chụp, ảnh vào danh sách"></svg>
+      <p class="muted small">Ảnh chỉ nằm trong bộ nhớ (mất khi tắt app) và <b>chưa gửi lên server</b>. Khi nối server, app sẽ dùng <code>WS /ws</code> và <code>POST /warp</code> (đã có sẵn ở server).</p></div>
+  </div>
+  <p class="muted small">Các module cũ (giọng nói, hướng dẫn, kết nối server, lưu trữ…) được cất ở <code>src/_disabled/</code>, không build, để gắn lại sau.</p>
+</section>
+
+<section class="doc-sec" id="kiem-thu" data-group="Vận hành" data-title="Kiểm thử">
+  <p class="eyebrow">Mục 9</p>
+  <h2>Kiểm thử</h2>
+  <p class="lead">34 test cho server (pytest). <code>tests/scenes.py</code> tạo ảnh tổng hợp (nền gỗ, giấy, vòng gáy xoắn, dây cáp, nhiễu) nên hầu hết test không cần ảnh thật.</p>
+  <div class="tests" id="testBars"></div>
+</section>
+
+<section class="doc-sec" id="van-hanh" data-group="Vận hành" data-title="Chạy & mở rộng">
+  <p class="eyebrow">Mục 10</p>
+  <h2>Chạy và mở rộng</h2>
+  <div class="two">
+    <div class="card pad-l"><h3>Chạy server</h3>
+<pre class="code">.\server\run.ps1
+# mở http://localhost:8000/
+# điện thoại: http://&lt;IP máy&gt;:8000/health
+
+cd server
+.\.venv\Scripts\python.exe -m pytest</pre>
+      <p class="muted small"><code>run.ps1</code> tự tạo venv và cài thư viện lần đầu, in địa chỉ IP trong mạng LAN, rồi chạy uvicorn ở cổng 8000.</p></div>
+    <div class="card pad-l"><h3>Thêm phiên bản detect mới</h3>
+      <ol class="steps">
+        <li>Tạo package <code>app/detection/v2/</code> với một lớp có <code>version</code>, <code>name</code>, <code>description</code>, <code>detect(img)</code>.</li>
+        <li>Trả kết quả bằng <code>found_result()</code> / <code>not_found()</code> trong <code>base.py</code> để đúng hợp đồng.</li>
+        <li>Thêm <code>register(...)</code> trong <code>detection/__init__.py</code>.</li>
+        <li>Xong — web tự hiện v2 trong danh sách chọn; app chọn bằng trường <code>version</code> của WebSocket.</li>
+      </ol>
+      <p class="muted small">Dùng <code>metrics.quad_jaccard</code> để so điểm giữa các phiên bản trên cùng bộ ảnh.</p></div>
+  </div>
+</section>
+
+<section class="doc-sec" id="phat-trien" data-group="Vận hành" data-title="Hướng phát triển">
+  <p class="eyebrow">Mục 11</p>
+  <h2>Hướng phát triển: web quản lý</h2>
+  <p class="lead">Web sẽ lớn thành nơi admin theo dõi hệ thống: có bao nhiêu thiết bị đang kết nối, các yêu cầu gửi lên thuộc loại nào. Bên dưới là phần đã có để gắn vào và phần còn thiếu (<b>chưa làm</b>).</p>
+  <div class="road" id="road"></div>
+</section>
+
+</article>
+</div>

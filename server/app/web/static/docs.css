@@ -1,0 +1,225 @@
+/* Tab Document: phong cách trang tài liệu (phẳng, chữ là chính, đường kẻ mảnh).
+   Dùng chung biến màu của style.css. */
+
+/* --- Thanh tab chính: tab gạch chân --- */
+.main-tabs { display: inline-flex; gap: 4px; align-self: stretch; margin-left: 8px; flex-shrink: 0; }
+.main-tab { border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 0 12px; margin-bottom: -1px; color: var(--muted); font-weight: 550; font-size: 14.5px; white-space: nowrap; }
+.main-tab:hover { color: var(--ink); }
+.main-tab.on { color: var(--ink); border-bottom-color: var(--ink); }
+body.mode-docs .shell, body.mode-docs .scrim, body.mode-docs .version, body.mode-docs #paneBtn { display: none !important; }
+
+/* --- Khung --- */
+.docs { display: none; --d-line: color-mix(in srgb, var(--line) 80%, transparent); --d-soft: color-mix(in srgb, var(--ink) 4%, transparent); background: var(--card); }
+body.mode-docs .docs { display: grid; grid-template-columns: 260px minmax(0, 1fr); height: calc(100vh - var(--header-h)); }
+.doc-toc { padding: 24px 12px 32px 20px; overflow-y: auto; border-right: 1px solid var(--d-line); display: flex; flex-direction: column; gap: 1px; }
+.toc-group { font-size: 12px; font-weight: 650; color: var(--ink); margin: 18px 0 4px 10px; }
+.toc-group:first-child { margin-top: 0; }
+.doc-toc a { padding: 4px 10px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 14px; line-height: 1.5; }
+.doc-toc a:hover { color: var(--ink); }
+.doc-toc a.on { color: var(--accent); border-left-color: var(--accent); font-weight: 550; }
+.doc-main { overflow-y: auto; overscroll-behavior: contain; scroll-behavior: smooth; }
+.doc-body { max-width: 800px; margin: 0 auto; padding: 24px 40px 120px; }
+.doc-sec { padding: 48px 0 0; scroll-margin-top: 8px; }
+.doc-sec + .doc-sec { margin-top: 24px; border-top: 1px solid var(--d-line); }
+.doc-sec h2 { font-size: 30px; line-height: 1.2; font-weight: 700; letter-spacing: -.025em; margin: 4px 0 14px; }
+.doc-sec h3 { font-size: 16px; font-weight: 650; margin: 0 0 10px; }
+.doc-sec h3.sub { margin: 28px 0 8px; }
+.eyebrow { font-size: 13px; font-weight: 500; color: var(--muted); }
+.lead { color: var(--muted); font-size: 16.5px; line-height: 1.7; margin-bottom: 24px; }
+.lead b, .doc-sec p b { color: var(--ink); font-weight: 650; }
+.doc-sec p, .doc-sec li { line-height: 1.7; }
+.doc-body code { font: 13px ui-monospace, "Cascadia Code", Consolas, monospace; background: var(--d-soft); color: var(--ink); padding: 1.5px 6px; border-radius: 5px; border: 1px solid var(--d-line); }
+.mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12.5px; }
+.muted.small { font-size: 13px; }
+
+/* Thẻ phẳng: chỉ còn viền mảnh */
+.docs .card { background: transparent; box-shadow: none; border: 1px solid var(--d-line); border-radius: 8px; }
+.pad-l { padding: 18px 20px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 20px; align-items: start; }
+.scroll-x { overflow-x: auto; }
+.fig { margin: 0 0 16px; }
+.fig figcaption { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.docs .btn { background: transparent; border-radius: 6px; box-shadow: none; }
+
+/* --- Số liệu: một hàng, không hộp --- */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--d-line); border-bottom: 1px solid var(--d-line); margin: 0 0 28px; }
+.stat { padding: 16px 16px 16px 0; display: flex; flex-direction: column; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
+.stat + .stat { padding-left: 16px; border-left: 1px solid var(--d-line); }
+.stat b { font-size: 28px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; color: var(--ink); }
+.stat span { font-weight: 550; font-size: 13.5px; }
+.stat i { font-style: normal; color: var(--muted); font-size: 12.5px; }
+
+/* --- SVG: nét mảnh, một tông, nhấn bằng một màu --- */
+.sv { width: 100%; height: auto; display: block; }
+.sv text { fill: var(--ink); font-family: system-ui, "Segoe UI", sans-serif; }
+.sv-t { font-size: 13.5px; font-weight: 600; }
+.sv-s, .sv-l { font-size: 12px; fill: var(--muted) !important; }
+.sv-box { fill: var(--card); stroke: color-mix(in srgb, var(--ink) 28%, var(--card)); stroke-width: 1; }
+.sv-box.c-app, .sv-box.c-web, .sv-box.c-api, .sv-box.c-infra { fill: var(--card); stroke: color-mix(in srgb, var(--ink) 28%, var(--card)); }
+.sv-box.c-det { fill: color-mix(in srgb, var(--accent) 7%, var(--card)); stroke: var(--accent); }
+.sv-box.c-ok { fill: color-mix(in srgb, var(--ok) 8%, var(--card)); stroke: var(--ok); }
+.sv-box.c-bad { fill: color-mix(in srgb, var(--bad) 7%, var(--card)); stroke: var(--bad); }
+.sv-box.c-data { fill: transparent; stroke-dasharray: 3 3; }
+.sv-box.dashbox { stroke-dasharray: 4 3; fill: transparent; }
+.sv-zone { fill: transparent; stroke: color-mix(in srgb, var(--ink) 25%, var(--card)); stroke-width: 1; stroke-dasharray: 4 4; }
+.sv-zone-t { font-size: 12px; fill: var(--muted) !important; }
+.sv-arrow { stroke: color-mix(in srgb, var(--ink) 50%, var(--card)); stroke-width: 1.2; fill: none; }
+.sv-arrow.dash { stroke-dasharray: 4 3; }
+.sv-fill-muted { fill: color-mix(in srgb, var(--ink) 50%, var(--card)); }
+.sv-thumb { fill: var(--d-soft); stroke: none; }
+.sv-quad { fill: color-mix(in srgb, var(--accent) 14%, transparent); stroke: var(--accent); stroke-width: 1.6; }
+.sv-corner circle { fill: var(--card); stroke: var(--accent); stroke-width: 2; }
+.sv-margin { fill: color-mix(in srgb, var(--bad) 8%, transparent); stroke: none; }
+.sv-inner { fill: var(--card); }
+.sv-sm { max-width: 320px; margin: 0 0 10px; }
+
+/* --- Bộ lọc: văn bản có gạch chân --- */
+.chips { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 0 0 16px; border-bottom: 1px solid var(--d-line); }
+.chip { border: 0; border-radius: 0; border-bottom: 2px solid transparent; background: transparent; padding: 6px 0; margin-bottom: -1px; font-size: 13.5px; font-weight: 550; color: var(--muted); }
+.chip:hover { color: var(--ink); background: transparent; border-color: transparent; }
+.chip.on, .chip.on:hover { color: var(--ink); border-bottom-color: var(--ink); background: transparent; }
+
+/* --- Module --- */
+.mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0; border-top: 1px solid var(--d-line); border-left: 1px solid var(--d-line); }
+.mod { text-align: left; background: transparent; border: 0; border-right: 1px solid var(--d-line); border-bottom: 1px solid var(--d-line); border-radius: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-height: 96px; }
+.mod:hover { background: var(--d-soft); }
+.mod.on { background: color-mix(in srgb, var(--accent) 8%, transparent); box-shadow: inset 2px 0 0 var(--accent); }
+.mod b { font: 600 13px ui-monospace, "Cascadia Code", Consolas, monospace; overflow-wrap: anywhere; display: flex; align-items: center; gap: 7px; }
+.mod b::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+.mod.api b::before { background: #0891b2; } .mod.det b::before { background: var(--warn); } .mod.infra b::before { background: #64748b; }
+.mod.web b::before { background: #9333ea; } .mod.app b::before { background: var(--accent); } .mod.test b::before { background: var(--ok); }
+.mod span:not(.mod-bar) { font-size: 12.5px; line-height: 1.5; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mod em { font-style: normal; font-size: 11.5px; color: var(--bad); }
+.mod-bar { display: none; }
+.mod-detail { margin-top: 16px; padding: 20px 22px; }
+.md-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.md-head h3 { margin: 0; font: 600 17px ui-monospace, "Cascadia Code", Consolas, monospace; }
+.md-cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; margin-top: 12px; }
+.md-cols h4 { margin: 0 0 4px; font-size: 12.5px; font-weight: 650; color: var(--muted); }
+.md-cols p { margin: 0 0 14px; }
+.md-cols ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; }
+.lay { font-size: 12px; font-weight: 550; color: var(--muted); border: 1px solid var(--d-line); border-radius: 4px; padding: 0 7px; background: transparent; }
+.lay.off { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); background: transparent; }
+
+/* --- Pipeline --- */
+.pipe { padding: 0; overflow: hidden; }
+.pipe-steps { display: flex; overflow-x: auto; border-bottom: 1px solid var(--d-line); padding: 0; }
+.pstep { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: transparent; padding: 11px 14px; font-weight: 550; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.pstep i { font-style: normal; font-size: 12px; font-variant-numeric: tabular-nums; opacity: .7; width: auto; height: auto; background: transparent; }
+.pstep:hover { color: var(--ink); }
+.pstep.done { color: var(--ink); }
+.pstep.on { color: var(--accent); border-bottom-color: var(--accent); background: transparent; }
+.pstep.on i, .pstep.done i { background: transparent; color: inherit; }
+.pipe-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 0; align-items: stretch; }
+.pipe-view { padding: 16px; }
+.pipe-view svg { width: 100%; height: auto; border-radius: 6px; display: block; border: 0; }
+.pipe-text { padding: 22px 24px 22px 8px; align-self: center; }
+.pipe-text h3 { font-size: 18px; margin-bottom: 8px; }
+.pipe-nav { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-top: 1px solid var(--d-line); }
+.pipe-nav .btn:disabled { opacity: .35; cursor: not-allowed; }
+.ps-bg { fill: #6b5a4a; } .ps-page { fill: #f4f1e8; stroke: #cfc8b4; }
+.ps-grain { stroke: #54463a; stroke-width: 2; } .ps-text { stroke: #9aa0aa; stroke-width: 3; stroke-linecap: round; transition: opacity .4s; }
+.ps-text.fade { opacity: 0; }
+.ps-seg { stroke: #ff8c00; stroke-width: 3; stroke-linecap: round; } .ps-seg.noise { stroke: #ffd29a; stroke-width: 2.5; } .ps-seg.faded { opacity: .25; }
+.ps-merged { stroke: #00c8f0; stroke-width: 2.5; } .ps-merged.alt { stroke: #8a8f98; stroke-dasharray: 6 4; }
+.ps-cand { fill: rgba(255, 255, 255, .06); stroke: #e5e7eb; stroke-width: 2; stroke-dasharray: 6 4; }
+.ps-cand.main { stroke: #ff8c00; stroke-dasharray: none; fill: rgba(255, 140, 0, .1); } .ps-cand.main.ok { stroke: #22c55e; fill: rgba(34, 197, 94, .12); }
+.ps-dot { fill: #00d4ff; stroke: #000; stroke-width: 1; }
+.ps-barbg { fill: rgba(0, 0, 0, .4); } .ps-barok { fill: #22c55e; } .ps-barbad { fill: #ef4444; }
+.ps-lbl { font: 700 13px system-ui, sans-serif; fill: #fff !important; stroke: #000; stroke-width: 3; paint-order: stroke; }
+.ps-lbl.ok { fill: #4ade80 !important; } .ps-lbl.bad { fill: #fca5a5 !important; }
+.ps-result { fill: rgba(255, 140, 0, .22); stroke: #ff8c00; stroke-width: 3; } .ps-corner { fill: #00d4ff; stroke: #000; stroke-width: 1.5; }
+.ps-chip { fill: #16a34a; } .ps-chiptxt { font: 700 13px system-ui, sans-serif; fill: #fff !important; }
+.ps-cap { font: 600 12px system-ui, sans-serif; fill: #fff !important; stroke: #000; stroke-width: 3; paint-order: stroke; }
+
+/* --- Máy tính điểm --- */
+.calc { padding: 18px 20px; }
+.calc-presets { display: flex; flex-wrap: wrap; gap: 2px 18px; margin-bottom: 16px; border-bottom: 1px solid var(--d-line); }
+.calc-main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 28px; }
+.calc-sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+.calc-side { padding: 0 0 12px; border: 0; }
+.calc-side h4 { margin: 0 0 6px; font-size: 13px; font-weight: 650; }
+.side-out { font: 600 12.5px ui-monospace, Consolas, monospace; color: var(--accent); margin-top: 2px; }
+.sl { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; font-size: 12.5px; margin-bottom: 6px; }
+.sl span { color: var(--muted); } .sl b { font-variant-numeric: tabular-nums; font-weight: 600; } .sl input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.calc-spread { margin-top: 4px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--d-line); border-radius: 0; }
+.calc-quad { width: 100%; max-width: 200px; margin: 0 0 10px; display: block; }
+.cq-fill { fill: var(--d-soft); } .cq-edge { stroke: var(--ok); stroke-width: 5; stroke-linecap: round; transition: stroke .2s; }
+.calc-result .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--d-line); }
+.calc-result .kv span { color: var(--muted); } .calc-result .kv b { font-variant-numeric: tabular-nums; }
+.calc-result .kv.big b { font-size: 18px; color: var(--ink); }
+.verdict { margin-top: 12px; text-align: left; font-weight: 650; font-size: 13.5px; padding: 8px 12px; border-radius: 6px; border: 1px solid; }
+.verdict.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, transparent); background: color-mix(in srgb, var(--ok) 7%, transparent); }
+.verdict.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 7%, transparent); }
+.verdict.bad { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); background: color-mix(in srgb, var(--bad) 7%, transparent); }
+.formula { margin-top: 14px; padding: 4px 0 4px 16px; border: 0; border-left: 2px solid var(--d-line); border-radius: 0; background: transparent; font: 13px/1.9 ui-monospace, "Cascadia Code", Consolas, monospace; display: block; }
+.f-k { display: inline-block; min-width: 92px; color: var(--accent); font-weight: 400; }
+
+/* --- Bảng: chỉ đường kẻ ngang --- */
+.ptable-wrap { overflow-x: auto; margin-top: 20px; }
+.ptable { width: 100%; border-collapse: collapse; font-size: 13.5px; background: transparent; border: 0; border-radius: 0; }
+.ptable th, .ptable td { padding: 9px 12px 9px 0; text-align: left; border-bottom: 1px solid var(--d-line); vertical-align: top; line-height: 1.55; }
+.ptable th { background: transparent; font-size: 12.5px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--muted); border-bottom-color: color-mix(in srgb, var(--ink) 25%, var(--card)); }
+.ptable tr:last-child td { border-bottom: 1px solid var(--d-line); }
+.verb { font: 600 11.5px ui-monospace, Consolas, monospace; background: transparent; padding: 0; }
+.verb.get { color: var(--ok); } .verb.post { color: var(--accent); } .verb.delete { color: var(--bad); } .verb.ws { color: #9333ea; }
+
+/* --- Sequence --- */
+.seq { min-width: 560px; }
+.seq-life { stroke: var(--d-line); stroke-width: 1; stroke-dasharray: 3 4; }
+.seq-act { fill: color-mix(in srgb, var(--accent) 12%, var(--card)); stroke: var(--accent); }
+
+/* --- Cây thư mục / code --- */
+.tree { display: flex; flex-direction: column; gap: 5px; }
+.tree .tr { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 13.5px; }
+.tree .lv1 { padding-left: 18px; } .tree .lv2 { padding-left: 38px; }
+.ico { width: 8px; height: 8px; border-radius: 2px; background: var(--muted); display: inline-block; flex-shrink: 0; align-self: center; }
+.ico.dir { background: var(--warn); } .ico.img { background: var(--accent); } .ico.json { background: var(--ok); }
+.code { margin: 0; background: var(--d-soft); border: 1px solid var(--d-line); border-radius: 6px; padding: 14px 16px; font: 12.5px/1.65 ui-monospace, "Cascadia Code", Consolas, monospace; overflow-x: auto; white-space: pre; }
+
+/* --- Danh sách --- */
+.feat { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; }
+.flow-v { display: flex; flex-direction: column; }
+.fv { display: flex; flex-direction: column; gap: 2px; padding: 9px 0; background: transparent; border-radius: 0; border-bottom: 1px solid var(--d-line); font-size: 13.5px; }
+.fv:last-child { border-bottom: 0; }
+.fv code { align-self: flex-start; }
+.fv span { color: var(--muted); }
+.dotp { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--muted); }
+.dotp.ok { background: var(--ok); }
+.steps { margin: 0 0 10px; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
+.road { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.road-col { padding: 16px 20px; }
+.road-col.have, .road-col.todo { border-top: 1px solid var(--d-line); }
+.road-col h3::before { display: inline-block; width: 20px; font-weight: 700; }
+.road-col.have h3::before { content: "✓"; color: var(--ok); }
+.road-col.todo h3::before { content: "○"; color: var(--warn); }
+.tests { display: flex; flex-direction: column; gap: 14px; }
+.tb { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 3px 16px; align-items: center; }
+.tb > span { grid-column: 2; line-height: 1.5; }
+.tb-bar { display: flex; align-items: center; gap: 10px; }
+.tb-bar i { display: block; height: 8px; border-radius: 4px; background: var(--ink); opacity: .75; }
+.tb-bar b { font-variant-numeric: tabular-nums; font-size: 13px; }
+
+/* --- Màn hình hẹp --- */
+@media (max-width: 960px) {
+  body.mode-docs .docs { display: block; height: auto; }
+  .doc-toc { position: sticky; top: var(--header-h); z-index: 5; background: var(--card); flex-direction: row; align-items: center; overflow-x: auto; padding: 0 12px; gap: 0; border-right: 0; border-bottom: 1px solid var(--d-line); }
+  .toc-group { display: none; }
+  .doc-toc a { white-space: nowrap; padding: 11px 10px; border-left: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .doc-toc a.on { border-bottom-color: var(--accent); }
+  .doc-main { overflow: visible; }
+  .doc-body { padding: 8px 20px 80px; }
+  .doc-sec { scroll-margin-top: calc(var(--header-h) + 48px); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat:nth-child(3) { padding-left: 0; border-left: 0; }
+  .stat:nth-child(n+3) { border-top: 1px solid var(--d-line); }
+  .two, .road, .md-cols, .pipe-body, .calc-main { grid-template-columns: minmax(0, 1fr); }
+  .pipe-text { padding: 4px 18px 18px; }
+}
+@media (max-width: 560px) {
+  .brand-text { display: none; }
+  .main-tab { padding: 0 8px; font-size: 14px; }
+  .doc-sec h2 { font-size: 24px; }
+  .calc-sides { grid-template-columns: minmax(0, 1fr); }
+  .tb { grid-template-columns: minmax(0, 1fr); } .tb > span { grid-column: 1; }
+}

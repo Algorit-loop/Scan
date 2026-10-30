@@ -401,6 +401,7 @@ els.lbClose.addEventListener("click", closeLightbox);
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !els.lightbox.hidden) { closeLightbox(); return; }
   if (e.key === "Escape") closeDrawer();
+  if (document.body.classList.contains("mode-docs")) return;
   if (!["ArrowLeft", "ArrowRight"].includes(e.key) || /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName)) return;
   // Mũi tên trái/phải để duyệt lịch sử (ảnh mới hơn nằm bên trái).
   const i = state.items.findIndex((x) => x.id === state.current?.id);
@@ -412,7 +413,8 @@ window.addEventListener("keydown", (e) => {
   try {
     await loadDetectors();
     await loadHistory();
-    const id = location.hash.slice(1);
+    const hash = location.hash.slice(1);
+    const id = hash.startsWith("docs") ? "" : hash;
     const target = state.items.find((i) => i.id === id) || state.items[0];
     if (target) await show(target.id, { push: !!id });
     else renderViewer();

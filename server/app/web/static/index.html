@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kiểm tra detect tài liệu</title>
+  <title>Scan Admin</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M9 9h6M9 9v6M23 9h-6M23 9v6M9 23h6M9 23v-6M23 23h-6M23 23v-6' stroke='white' stroke-width='2.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/docs.css">
 </head>
 <body>
   <header class="top">
@@ -15,10 +16,14 @@
     <div class="brand">
       <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M9 9h6M9 9v6M23 9h-6M23 9v6M9 23h6M9 23v-6M23 23h-6M23 23v-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
       <div class="brand-text">
-        <h1>Kiểm tra detect tài liệu</h1>
-        <p class="muted small">Upload ảnh → chạy detect → xem 4 góc, lưu lại để so sánh</p>
+        <h1>Scan Admin</h1>
+        <p class="muted small">Công cụ cho admin / dev trên server</p>
       </div>
     </div>
+    <nav class="main-tabs" role="tablist" aria-label="Chọn trang">
+      <button class="main-tab on" type="button" role="tab" data-mode="inspect" aria-selected="true">Kiểm tra detect</button>
+      <button class="main-tab" type="button" role="tab" data-mode="docs" aria-selected="false">Document</button>
+    </nav>
     <label class="version">
       <span class="muted small">Phiên bản detect</span>
       <select id="version"></select>
@@ -80,6 +85,8 @@
     </aside>
   </div>
 
+  <div class="docs" id="docs" hidden></div>
+
   <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Xem ảnh phóng to">
     <button class="lb-close" id="lbClose" type="button" aria-label="Đóng">×</button>
     <div class="lb-body" id="lbBody"></div>
@@ -87,5 +94,6 @@
   <div class="dropveil" id="veil" hidden><div>Thả ảnh vào đây để detect</div></div>
 
   <script src="/static/app.js"></script>
+  <script src="/static/docs.js"></script>
 </body>
 </html>
