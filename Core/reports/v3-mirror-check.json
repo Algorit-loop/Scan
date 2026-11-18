@@ -1,0 +1,30 @@
+{
+ "createdAt": "2026-11-18 21:22",
+ "images": 180,
+ "sameFound": 180,
+ "bothFound": 162,
+ "cornersWithin05pct": 159,
+ "mismatches": [
+  {
+   "dataset": "DocCorner",
+   "id": "test_card_4_class_000267",
+   "native": true,
+   "mirror": true,
+   "maxDiff": 0.012872959827554653
+  },
+  {
+   "dataset": "DocCorner",
+   "id": "test_card_corner_005718",
+   "native": true,
+   "mirror": true,
+   "maxDiff": 0.010187268257141113
+  },
+  {
+   "dataset": "SmartDoc",
+   "id": "background05_patent004_0041",
+   "native": true,
+   "mirror": true,
+   "maxDiff": 0.017143431637022255
+  }
+ ]
+}

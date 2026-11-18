@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  video, canvas, #flash { position: fixed; inset: 0; width: 100%; height: 100%; }
+  video { object-fit: cover; }
+  #flash { background: #fff; opacity: 0; pointer-events: none; }
+  #flash.on { animation: flash 280ms ease-out; }
+  @keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
+</style>
+</head>
+<body>
+<video id="video" autoplay playsinline muted></video>
+<canvas id="overlay"></canvas>
+<div id="flash"></div>
+<script>var ENGINE_SRC = /*@ENGINE@*/; var WORKER_SRC = /*@WORKER@*/;</script>
+<script>/*@TRACKER@*/</script>
+<script>/*@PAGE@*/</script>
+</body>
+</html>

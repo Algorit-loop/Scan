@@ -5,7 +5,7 @@
 .cache/
 .home/
 .tmp/
-server/.venv/
+Core/.venv/
 __pycache__/
 
 # dependencies
@@ -48,10 +48,18 @@ yarn-error.*
 /ios
 /android
 
-# document
-document/
+# ghi chu ca nhan
 AGENTS.md
 PLAN.md
-# ket qua detect cua trang web kiem tra
-server/data/*
-!server/data/.gitkeep
+
+# Core: du lieu lon / sinh ra khi chay
+Core/docs/
+Core/dataset/
+Core/uploads/
+Core/.cache/
+Core/native/native-backup.zip
+# build cua thu vien C++ (Core/native/docdetect/build.ps1)
+Core/native/docdetect/build/
+Core/native/docdetect_v3/build/
+# build WebAssembly cua app (App/native/build-wasm.ps1)
+App/native/build/

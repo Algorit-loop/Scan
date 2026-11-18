@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scan Core</title>
+  <link rel="stylesheet" href="/static/app.css?v=__BUILD__">
+  <script>
+    try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  </script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">Scan<span>Core</span></a>
+    <nav class="nav" id="nav" aria-label="Trang"></nav>
+    <button class="icon-btn" id="theme" type="button" title="Đổi sáng/tối" aria-label="Đổi sáng/tối">◐</button>
+  </header>
+  <main id="main" class="main"></main>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script type="module" src="/static/app.js?v=__BUILD__"></script>
+</body>
+</html>
