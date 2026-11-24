@@ -2,20 +2,21 @@
  * Màn hình quét chạy trong WebView: camera (getUserMedia), vòng detect qua Worker, vẽ khung, chụp + nắn phẳng.
  *
  * Luồng mỗi khung hình (requestAnimationFrame):
- *   1. Vẽ khung đang theo dõi (trượt mượt tới vị trí mới, đổi vàng -> xanh khi đứng yên).
- *   2. Nếu Worker rảnh: cắt đúng vùng người dùng nhìn thấy, thu nhỏ còn DETECT_SIDE, gửi Worker.
- *   3. Kết quả về -> Tracker lọc/làm mượt -> gợi ý (hint) gửi app khi đổi.
+ *   1. Vẽ khung: chế độ Tracker = khung đã lọc (trượt mượt, vàng -> xanh khi đứng yên);
+ *      chế độ không Tracker = vẽ thẳng kết quả detect mới nhất.
+ *   2. Có khung camera mới và Worker rảnh: cắt đúng vùng người dùng nhìn thấy, thu nhỏ còn detectSide, gửi Worker.
+ *      Không giới hạn nhịp: detect nhanh nhất mà Worker và camera cho phép.
+ *   3. Kết quả về -> (Tracker lọc) -> gợi ý (hint) gửi app khi đổi.
  * Chụp: lấy vùng nhìn thấy ở độ phân giải gốc -> Worker detect lại + warpPerspective -> JPEG base64 về app.
  *
- * app -> trang: window.__rn({ type: 'capture', id } | { type: 'resume' })
+ * app -> trang: window.__rn({ type: 'capture', id } | { type: 'resume' } | { type: 'config', detectSide, tracker })
  * trang -> app: { type: 'camera', width, height } | { type: 'engine', ok, message? } | { type: 'error', message }
  *               { type: 'status', hint, steady } | { type: 'perf', fps, ms, rt }
  *               { type: 'captured', id, data, width, height, flattened } | { type: 'captureError', id, message }
  */
 /* global Tracker, ENGINE_SRC, WORKER_SRC */
 (function () {
-  var DETECT_SIDE = 384; // cạnh dài khung gửi detect (docdetect tự thu về 256)
-  var MIN_DETECT_INTERVAL = 50; // ms, tối đa ~20 lần/giây
+  var DETECT_SIDE = 256; // cạnh dài khung gửi detect, mặc định (app gửi 'config' để đổi: 256 hoặc 640)
   var OUTPUT_MAX_SIDE = 2400;
   var JPEG_QUALITY = 0.92;
   var HINT_SETTLE_MS = 250;
@@ -36,6 +37,11 @@
   var H = 0;
   var dpr = 1;
   var tracker = Tracker.create();
+  var detectSide = DETECT_SIDE;
+  var useTracker = true;
+  var rawQuad = null; // chế độ không Tracker: kết quả detect mới nhất
+  var frameCallbackOn = false;
+  var newFrame = true; // có khung camera mới chưa detect (requestVideoFrameCallback; không có thì luôn true)
   var worker = null;
   var engineReady = false;
   var engineFailed = false;
@@ -43,7 +49,6 @@
   var paused = false;
   var capturing = false;
   var nextId = 1;
-  var lastDetectAt = 0;
   var lastFrameAt = 0;
   var lastDet = null;
   var sentHint = null;
@@ -126,7 +131,7 @@
     var vw = video.videoWidth;
     if (!vw || video.readyState < 2) return;
     var r = visibleRect();
-    var k = Math.min(1, DETECT_SIDE / Math.max(r.sw, r.sh));
+    var k = Math.min(1, detectSide / Math.max(r.sw, r.sh));
     var w = Math.max(8, Math.round(r.sw * k));
     var h = Math.max(8, Math.round(r.sh * k));
     if (small.width !== w) small.width = w;
@@ -135,7 +140,7 @@
     var img = sctx.getImageData(0, 0, w, h);
     var id = nextId++;
     busy = true;
-    lastDetectAt = now;
+    if (video.requestVideoFrameCallback) newFrame = false;
     sentAt[id] = now;
     worker.postMessage({ type: 'detect', id: id, w: w, h: h, buffer: img.data.buffer }, [img.data.buffer]);
   }
@@ -153,7 +158,8 @@
     var r = m.result;
     lastDet = r;
     if (window.__scanDebug) window.__scanDebug(r); // móc cho bài thử trên trình duyệt
-    Tracker.update(tracker, r.found ? r.corners : null, now);
+    if (useTracker) Tracker.update(tracker, r.found ? r.corners : null, now);
+    else rawQuad = r.found ? r.corners : null;
     perf.n++;
     perf.ms += r.ms;
     perf.rt += started ? now - started : 0;
@@ -166,12 +172,18 @@
     return false;
   }
 
+  /** Khung dùng cho gợi ý và làm gợi ý khi chụp. */
+  function currentQuad() {
+    return useTracker ? Tracker.current(tracker, performance.now()) : rawQuad && rawQuad.slice();
+  }
+
   function computeHint(s) {
     if (!engineReady) return engineFailed ? 'no-engine' : 'starting';
     if (!s.visible) return lastDet && lastDet.reason === REASON_LOW_CONTRAST ? 'dark' : 'search';
-    var q = Tracker.current(tracker, performance.now());
+    var q = currentQuad();
     if (q && Tracker.area(q) < 0.18) return 'closer';
     if (q && touchesEdge(q)) return 'farther';
+    if (!useTracker) return 'found'; // không Tracker thì không biết "đứng yên"
     return s.steady ? 'ready' : 'hold';
   }
 
@@ -249,10 +261,12 @@
     var dt = lastFrameAt ? Math.min(100, now - lastFrameAt) : 16;
     lastFrameAt = now;
     if (paused) return; // giữ nguyên khung cuối khi đang chụp / xem kết quả
-    var s = Tracker.step(tracker, now, dt);
+    var s = useTracker
+      ? Tracker.step(tracker, now, dt)
+      : { quad: rawQuad, opacity: rawQuad ? 1 : 0, visible: !!rawQuad, steady: false, steadyMix: 0 };
     draw(s);
     reportHint(s, now);
-    if (engineReady && !busy && now - lastDetectAt >= MIN_DETECT_INTERVAL) startDetect(now);
+    if (engineReady && !busy && newFrame) startDetect(now);
   }
 
   // ---------- Chụp ----------
@@ -288,7 +302,7 @@
         // Không có engine: trả ảnh gốc của vùng nhìn thấy.
         return onCaptured({ id: id, w: w, h: h, buffer: img.data.buffer, flattened: false });
       }
-      var hint = Tracker.current(tracker, performance.now());
+      var hint = currentQuad();
       worker.postMessage(
         { type: 'capture', id: id, w: w, h: h, buffer: img.data.buffer, hint: hint, maxSide: OUTPUT_MAX_SIDE },
         [img.data.buffer],
@@ -320,9 +334,24 @@
     }
   }
 
+  function resetView() {
+    tracker = Tracker.create();
+    rawQuad = null;
+  }
+
+  function configure(msg) {
+    if (msg.detectSide === 256 || msg.detectSide === 640) detectSide = msg.detectSide;
+    if (typeof msg.tracker === 'boolean' && msg.tracker !== useTracker) {
+      useTracker = msg.tracker;
+      resetView();
+    }
+    perf = { n: 0, ms: 0, rt: 0, since: performance.now() };
+    sentHint = sentSteady = hintCandidate = null;
+  }
+
   function resume() {
     if (capturing) return;
-    tracker = Tracker.create();
+    resetView();
     lastDet = null;
     sentHint = sentSteady = hintCandidate = null;
     octx.setTransform(1, 0, 0, 1, 0, 0);
@@ -353,6 +382,14 @@
       })
       .then(function (stream) {
         video.srcObject = stream;
+        if (video.requestVideoFrameCallback && !frameCallbackOn) {
+          frameCallbackOn = true; // gắn với thẻ video, chỉ đăng ký một lần dù camera mở lại
+          var onVideoFrame = function () {
+            newFrame = true;
+            video.requestVideoFrameCallback(onVideoFrame);
+          };
+          video.requestVideoFrameCallback(onVideoFrame);
+        }
         video.onloadedmetadata = function () {
           var p = video.play();
           if (p && p.catch) p.catch(function (e) { send({ type: 'error', message: 'play: ' + errText(e) }); });
@@ -373,6 +410,7 @@
     if (!msg) return;
     if (msg.type === 'capture') capture(msg.id);
     else if (msg.type === 'resume') resume();
+    else if (msg.type === 'config') configure(msg);
   };
 
   window.addEventListener('resize', resize);

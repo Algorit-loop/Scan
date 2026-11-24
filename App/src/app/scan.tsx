@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { saveScan } from '../scanner/lastScan';
 import { type Hint, type Perf, type ScannerHandle, ScannerView } from '../scanner/ScannerView';
+import { type ScanSettings, useScanSettings } from '../scanner/settings';
 import { colors, font, MIN_TOUCH } from '../theme';
 
 const HINT_TEXT: Record<Hint, string> = {
@@ -18,6 +19,7 @@ const HINT_TEXT: Record<Hint, string> = {
   farther: 'Lùi ra xa để thấy đủ 4 góc',
   hold: 'Giữ yên máy…',
   ready: 'Sẵn sàng — bấm chụp',
+  found: 'Đã thấy tài liệu (không Tracker)',
 };
 
 export default function ScanScreen() {
@@ -31,6 +33,7 @@ export default function ScanScreen() {
   const [error, setError] = useState<string | null>(null);
   const [perf, setPerf] = useState<Perf | null>(null);
   const wasSteady = useRef(false);
+  const [settings, updateSettings] = useScanSettings();
 
   // Quay lại từ màn kết quả ("Chụp lại"): chạy lại camera + detect.
   const focused = useRef(false);
@@ -71,10 +74,11 @@ export default function ScanScreen() {
     <View style={styles.container}>
       <ScannerView
         ref={scanner}
+        settings={settings}
         onCamera={() => setCameraOn(true)}
         onEngine={(ok, message) => !ok && message && setError(message)}
         onStatus={onStatus}
-        onPerf={__DEV__ ? setPerf : undefined}
+        onPerf={setPerf}
         onError={setError}
       />
 
@@ -88,12 +92,32 @@ export default function ScanScreen() {
         >
           <Text style={styles.closeText}>✕</Text>
         </Pressable>
-        {perf && (
-          <Text style={styles.perf}>
-            {perf.fps.toFixed(1)} lần/s · detect {perf.ms.toFixed(0)} ms · vòng {perf.rt.toFixed(0)} ms
-          </Text>
-        )}
+        {/* Đặt bên trái, chừa góc phải cho nút cài đặt nổi của Expo Go. */}
+        <View style={styles.options}>
+          <Segment
+            label="Khung"
+            value={settings.detectSide}
+            options={[[256, '256'], [640, '640']]}
+            onChange={(detectSide) => {
+              setPerf(null);
+              updateSettings({ detectSide });
+            }}
+          />
+          <Segment
+            label="Theo dõi"
+            value={settings.tracker}
+            options={[[true, 'Tracker'], [false, 'Không']]}
+            onChange={(tracker) => updateSettings({ tracker })}
+          />
+        </View>
       </View>
+
+      {perf && (
+        <Text style={[styles.perf, { top: insets.top + 8 + OPTIONS_HEIGHT + 8 }]}>
+          detect {perf.fps.toFixed(1)} lần/s · {perf.ms.toFixed(1)} ms · vòng {perf.rt.toFixed(0)} ms · {settings.detectSide}px ·{' '}
+          {settings.tracker ? 'Tracker' : 'không Tracker'}
+        </Text>
+      )}
 
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 16) + 20 }]} pointerEvents="box-none">
         <View style={[styles.hint, ready && styles.hintReady]} accessibilityLiveRegion="polite">
@@ -118,12 +142,62 @@ export default function ScanScreen() {
   );
 }
 
+function Segment<T extends ScanSettings[keyof ScanSettings]>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: [T, string][];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <View style={styles.segment} accessibilityRole="radiogroup" accessibilityLabel={label}>
+      {options.map(([v, text]) => {
+        const on = v === value;
+        return (
+          <Pressable
+            key={String(v)}
+            onPress={() => onChange(v)}
+            style={[styles.segItem, on && styles.segOn]}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: on }}
+            accessibilityLabel={`${label} ${text}`}
+            hitSlop={4}
+          >
+            <Text style={[styles.segText, on && styles.segTextOn]}>{text}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const SEGMENT_H = 38; // 32 + đệm 2 × 3
+const OPTIONS_HEIGHT = SEGMENT_H * 2 + 8;
 const SHUTTER = 80;
 const INNER = SHUTTER - 16;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, gap: 8, alignItems: 'flex-start' },
+  top: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  options: { gap: 8, alignItems: 'flex-start' },
+  segment: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 18, padding: 3 },
+  segItem: { minWidth: 64, height: 32, paddingHorizontal: 10, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  segOn: { backgroundColor: colors.accent },
+  segText: { color: colors.text, fontSize: font.small, fontWeight: '600' },
+  segTextOn: { color: colors.onAccent },
   close: {
     width: MIN_TOUCH,
     height: MIN_TOUCH,
@@ -133,7 +207,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeText: { color: colors.text, fontSize: 24, fontWeight: '600' },
-  perf: { color: colors.textMuted, fontSize: 12, backgroundColor: 'rgba(0,0,0,0.5)', padding: 4, borderRadius: 4 },
+  perf: {
+    position: 'absolute',
+    left: 16,
+    color: colors.text,
+    fontSize: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', gap: 16, paddingHorizontal: 16 },
   hint: { backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22 },
   hintReady: { backgroundColor: colors.success },

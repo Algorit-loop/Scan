@@ -54,7 +54,7 @@ export default async function item(main, ctx) {
     const lines = liveOn && view.lines ? live.result.debug?.lines : null;
     if (view.mode === "split") {
       const panes = visible.map((r) => ({ t: r, c: color[r], layers: [gtLayer(), runLayer(r)], p: runs[r] }));
-      if (liveOn) panes.push({ t: `Detect lại · ${live.version}@${live.size}`, c: COLORS.live, layers: [gtLayer(), liveLayer()], lines });
+      if (liveOn) panes.push({ t: `Detect lại ${live.version}@${live.size}`, c: COLORS.live, layers: [gtLayer(), liveLayer()], lines });
       if (!panes.length) panes.push({ t: "Đáp án", c: COLORS.gt, layers: [gtLayer()] });
       return `<div class="stage split">${panes.map((p) => `<div class="pane"><div class="pane-t"><span class="dot" style="--c:${p.c}"></span><b class="mono">${esc(p.t)}</b>${p.p ? iouBadge(p.p, label.found) : ""}</div>${shot({ src: imgSrc, w: W, h: H, layers: p.layers, lines: p.lines, lazy: false })}</div>`).join("")}</div>`;
     }
@@ -67,7 +67,7 @@ export default async function item(main, ctx) {
       <td><input type="checkbox" data-layer="${esc(key)}"${(key === "gt" ? view.gt : view.on.has(key)) ? " checked" : ""} aria-label="Hiện ${esc(name)}"></td>
       <td><span style="display:inline-flex;gap:6px;align-items:center"><span class="dot" style="--c:${c}"></span><span class="mono">${esc(name)}</span>${tag ? `<span class="tag">${tag}</span>` : ""}</span></td>
       <td class="num">${p ? iouBadge(p, label.found) : label.found ? `<span class="badge">có tài liệu</span>` : `<span class="badge">không có</span>`}</td>
-      <td class="num" title="${p ? esc(`Phương pháp: ${p.method ?? "—"} · Độ tin cậy: ${p.confidence ?? "—"}`) : ""}">${p ? fmt.pct(p.cornerErr, 2) : ""}</td>
+      <td class="num" title="${p ? esc(`Phương pháp: ${p.method ?? "n/a"}, độ tin cậy: ${p.confidence ?? "n/a"}`) : ""}">${p ? fmt.pct(p.cornerErr, 2) : ""}</td>
       <td class="num">${p ? fmt.ms(p.ms) : ""}</td></tr>`;
     const rows = [row("gt", "Đáp án", "", null, COLORS.gt)];
     for (const r of order) rows.push(row(r, r, r === list.run ? "A" : r === list.vs ? "B" : "", runs[r], color[r]));
@@ -86,7 +86,7 @@ export default async function item(main, ctx) {
       <dt>Kích thước</dt><dd>${W} × ${H}</dd>
       <dt>Có tài liệu</dt><dd>${label.found ? "có" : "không"}</dd>
       ${extraKv}
-      ${a ? `<dt>Phương pháp (A)</dt><dd>${esc(a.method ?? "—")}</dd><dt>Độ tin cậy (A)</dt><dd>${a.confidence ?? "—"}</dd>` : ""}
+      ${a ? `<dt>Phương pháp (A)</dt><dd>${esc(a.method ?? "n/a")}</dd><dt>Độ tin cậy (A)</dt><dd>${a.confidence ?? "n/a"}</dd>` : ""}
     </dl>`;
   }
 
@@ -96,7 +96,7 @@ export default async function item(main, ctx) {
     const lastS = store("live:s") || +(list.run?.split("@")[1]) || ctx.meta.letterbox;
     const r = live?.result;
     const detail = r ? `<dl class="kv" style="margin-top:12px">
-        <dt>Kết quả</dt><dd>${r.found ? `tìm thấy · ${esc(r.method)}` : `không thấy (${esc(r.reason)})`}</dd>
+        <dt>Kết quả</dt><dd>${r.found ? `tìm thấy (${esc(r.method)})` : `không thấy (${esc(r.reason)})`}</dd>
         ${live.iou != null ? `<dt>IoU</dt><dd>${fmt.iou(live.iou)}</dd>` : ""}
         ${r.found ? `<dt>Độ tin cậy</dt><dd>${r.confidence.toFixed(3)}</dd>` : ""}
         <dt>Thời gian</dt><dd>${fmt.ms(live.ms)}</dd>
@@ -113,7 +113,7 @@ export default async function item(main, ctx) {
 
   function render() {
     main.innerHTML = `
-      <div class="page-head" style="align-items:center">
+      <div class="page-hero slim hero-teal">
         <nav class="crumb"><a href="${esc(backUrl)}">${esc(ds)}</a><span>/</span><b title="${esc(id)}">${esc(id)}</b></nav>
         <div class="stepper">
           ${nav.prev ? `<a class="btn sm" href="${esc(itemUrl(nav.prev))}" title="Ảnh trước (←)">‹ Trước</a>` : `<span class="btn sm" aria-disabled="true" style="opacity:.4">‹ Trước</span>`}
@@ -136,8 +136,8 @@ export default async function item(main, ctx) {
         </div>
         <aside class="side">
           <div class="card"><div class="card-h"><h2>Kết quả</h2><span class="muted">bật/tắt lớp vẽ</span></div>${runsTable()}</div>
-          <div class="card"><div class="card-h"><h2>Detect lại</h2><span class="muted">code hiện tại</span></div><div class="card-b">${liveBox()}</div></div>
-          <div class="card"><div class="card-h"><h2>Ảnh</h2></div><div class="card-b">${labelInfo()}</div></div>
+          <div class="card c-violet"><div class="card-h"><h2>Detect lại</h2><span class="muted">code hiện tại</span></div><div class="card-b">${liveBox()}</div></div>
+          <div class="card c-amber"><div class="card-h"><h2>Ảnh</h2></div><div class="card-b">${labelInfo()}</div></div>
         </aside>
       </div>`;
   }

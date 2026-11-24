@@ -12,7 +12,7 @@ export default async function overview(main, ctx) {
   const cols = [
     { k: "meanIoU", t: "Mean IoU", f: fmt.iou, best: Math.max },
     { k: "success", t: "Success", f: (v) => fmt.pct(v, 0), best: Math.max },
-    { k: "msMedian", t: "ms", f: (v) => (v == null ? "—" : v.toFixed(v < 10 ? 1 : 0)), best: Math.min },
+    { k: "msMedian", t: "ms", f: (v) => (v == null ? "n/a" : v.toFixed(v < 10 ? 1 : 0)), best: Math.min },
   ];
   // Ô tốt nhất mỗi cột (chỉ xét lượt chạy trên toàn bộ dữ liệu, tránh so lệch tập ảnh).
   const best = {};
@@ -31,7 +31,7 @@ export default async function overview(main, ctx) {
       const link = href(`/d/${encodeURIComponent(d.name)}`, { run });
       if (!r) {
         const [version, size] = run.split("@");
-        return `<td class="num first-of-ds muted" colspan="${cols.length}" style="text-align:center"><a href="${esc(href("/eval", { version, size, ds: d.name }))}" title="Chạy đánh giá ${esc(run)} trên ${esc(d.name)}">— chưa chạy</a></td>`;
+        return `<td class="num first-of-ds muted" colspan="${cols.length}" style="text-align:center"><a href="${esc(href("/eval", { version, size, ds: d.name }))}" title="Chạy đánh giá ${esc(run)} trên ${esc(d.name)}">chưa chạy, bấm để chạy</a></td>`;
       }
       const partial = r.summary.images < d.images;
       return cols.map((c, i) => {
@@ -49,15 +49,20 @@ export default async function overview(main, ctx) {
     return `<a class="card ds-card" href="/d/${encodeURIComponent(d.name)}">
       <h2>${esc(d.name)}</h2>
       <div class="facts"><span><b>${fmt.int(d.images)}</b> ảnh</span><span><b>${fmt.int(neg)}</b> không có tài liệu</span><span><b>${d.groups.length}</b> nhóm</span></div>
-      <div class="facts"><span><b>${d.runs.length}</b> lượt đánh giá</span>${d.runs.length ? `<span class="mono">${d.runs.map((r) => esc(r.run)).join(" · ")}</span>` : ""}</div>
+      <div class="facts"><span><b>${d.runs.length}</b> lượt đánh giá</span></div>
+      ${d.runs.length ? `<div class="runs">${d.runs.map((r) => `<span>${esc(r.run)}</span>`).join("")}</div>` : ""}
     </a>`;
   }).join("");
 
+  const totalImages = datasets.reduce((n, d) => n + d.images, 0);
+  const totalRuns = datasets.reduce((n, d) => n + d.runs.length, 0);
   main.innerHTML = `
-    <div class="page-head">
-      <div><h1>Tổng quan</h1><p>Chỉ số của mọi phiên bản detect trên từng bộ dữ liệu. Bấm một ô để mở chi tiết.</p></div>
-      <a class="btn" href="/eval">Chạy đánh giá mới</a>
-    </div>
+    <header class="page-hero hero-blue">
+      <div><h1>Tổng quan</h1>
+        <p>Mỗi phiên bản detect đã được chạy trên những bộ dữ liệu nào và đạt bao nhiêu. Bấm một ô trong bảng để xem từng ảnh của lượt chạy đó.</p>
+        <div class="facts"><span class="fact"><b>${datasets.length}</b> bộ dữ liệu</span><span class="fact"><b>${fmt.int(totalImages)}</b> ảnh có nhãn</span><span class="fact"><b>${runNames.length}</b> cấu hình</span><span class="fact"><b>${totalRuns}</b> lượt đánh giá</span></div></div>
+      <div class="actions"><a class="btn primary" href="/eval">Chạy đánh giá mới</a></div>
+    </header>
     ${runNames.length ? `
     <div class="card scroll">
       <table class="table board">
@@ -65,7 +70,13 @@ export default async function overview(main, ctx) {
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <p class="muted" style="font-size:12.5px;margin:8px 2px 0">★ tốt nhất cột (chỉ so các lượt chạy đủ bộ dữ liệu). Success = tỉ lệ ảnh có IoU ≥ 0.9. ms = thời gian detect trung vị.</p>`
+    <div class="explain">
+      <div style="--k:var(--c-blue)"><b>Mean IoU</b>Độ trùng trung bình giữa khung tìm được và nhãn đúng. 1 là trùng khít, 0 là không trùng hoặc không thấy.</div>
+      <div style="--k:var(--c-green)"><b>Success</b>Tỉ lệ ảnh có IoU từ 0,9 trở lên, tức khung đủ chuẩn để nắn phẳng dùng được.</div>
+      <div style="--k:var(--c-amber)"><b>ms</b>Thời gian detect trung vị cho một ảnh trên máy này. Thấp hơn là nhanh hơn.</div>
+      <div style="--k:var(--c-violet)"><b>★ tốt nhất cột</b>Chỉ so các lượt chạy đủ cả bộ dữ liệu, để không so hai tập ảnh khác nhau.</div>
+    </div>`
     : `<div class="card empty">Chưa có kết quả đánh giá nào. <a href="/eval" style="color:var(--accent)">Chạy đánh giá</a></div>`}
-    <div class="ds-cards">${cards}</div>`;
+    <h2 class="sec-title" style="--c:var(--c-teal)">Bộ dữ liệu</h2>
+    <div class="ds-cards" style="margin-top:0">${cards}</div>`;
 }

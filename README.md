@@ -75,6 +75,8 @@ cd App; npm run build:web       # sau khi sửa web/ (không cần emsdk)
 
 Chưa build engine thì app vẫn mở camera và chụp được ảnh gốc, kèm thông báo thiếu bộ nhận diện.
 
+Trên màn quét có hai tùy chọn để thử (lưu trên máy): **Khung 256 / 640** — cạnh dài khung gửi detect (docdetect_v3 vẫn xử lý ở 256 px; 640 thì C++ tự thu nhỏ) — và **Tracker / Không** — lọc khung qua `web/tracker.js` hoặc vẽ thẳng kết quả detect. Detect không giới hạn nhịp: mỗi khung camera mới, khi Worker rảnh. Dòng số đo ở góc trên hiện số lần detect/giây và thời gian detect.
+
 Đối chiếu bản wasm với DLL native (cùng điểm ảnh, ảnh thật từ `Core/dataset`):
 
 ```powershell
@@ -101,7 +103,7 @@ tinh chỉnh bốn cạnh bằng gradient + khớp đường Huber. Python chỉ
 
 Ảnh minh họa từng bước trên `/algorithms` lấy từ `detect/v3/mirror.py` — bản Python viết lại đúng các bước C++ để giữ ảnh trung gian; bốn góc và ảnh nắn vẫn do thư viện native trả. Sửa C++ thì sửa mirror theo và chạy lại `check_mirror`.
 
-Trang `/video` cần video gốc SmartDoc ở `Core/dataset/videos/` (trích từ `dataset/_raw/testDataset.tar.gz`, ví dụ `tar xzf ... --strip-components=1 testDataset/background01/magazine004.avi testDataset/background01/magazine004.gt.xml`). Lần đầu mở mỗi video, server detect từng khung và lưu vào `Core/.cache/video/`.
+Trang `/video` cần video gốc SmartDoc ở `Core/dataset/videos/` (trích từ `dataset/_raw/testDataset.tar.gz`, ví dụ `tar xzf ... --strip-components=1 testDataset/background01/magazine004.avi testDataset/background01/magazine004.gt.xml`). Server chỉ tách khung và nhãn (lưu ở `Core/.cache/video/`). Detect chạy trong trình duyệt bằng engine WASM của app (`App/native/build/docdetect.js` + `App/web/worker.js`) và `App/web/tracker.js`, nên sửa app rồi tải lại trang là thấy kết quả mới.
 
 Khởi động lại web sau khi build DLL để thấy v3 trong các trang thử ảnh/đánh giá.
 Mở `/algorithms` để đọc quy trình và giới hạn; `/try?version=v3` chọn sẵn v3.

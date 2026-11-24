@@ -109,6 +109,12 @@ document.addEventListener("click", (e) => {
   const u = new URL(a.href, location.href);
   if (u.origin !== location.origin || u.pathname.startsWith("/api/") || u.pathname.startsWith("/static/")) return;
   e.preventDefault();
+  // Mục lục trong cùng trang: chỉ cuộn, không dựng lại trang.
+  if (u.hash && u.pathname === location.pathname && u.search === location.search) {
+    history.replaceState(null, "", u.hash);
+    document.getElementById(decodeURIComponent(u.hash.slice(1)))?.scrollIntoView({ behavior: "smooth" });
+    return;
+  }
   navigate(u.pathname + u.search + u.hash);
 });
 // Hàng trong bảng có data-href: bấm như link.

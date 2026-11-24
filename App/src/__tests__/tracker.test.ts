@@ -35,6 +35,14 @@ describe('Tracker', () => {
     expect(Tracker.step(t, 900, 16).steady).toBe(true);
   });
 
+  it('bám theo khi máy lia đều, không trễ xa', () => {
+    const t = Tracker.create();
+    let now = 0;
+    for (let i = 0; i < 40; i++, now += 50) Tracker.update(t, quad(i * 0.005), now);
+    // Thật đang ở 0.2 + 39 * 0.005; bản cũ (hệ số bám theo ngưỡng nhảy) trễ > 0,01 ở tốc độ này.
+    expect(0.2 + 39 * 0.005 - Tracker.current(t, now - 50)![0]).toBeLessThan(0.006);
+  });
+
   it('làm mượt rung nhỏ', () => {
     const t = Tracker.create();
     Tracker.update(t, quad(), 0);
@@ -49,14 +57,14 @@ describe('Tracker', () => {
     const t = Tracker.create();
     for (let now = 0; now <= 800; now += 50) Tracker.update(t, quad(), now);
     expect(Tracker.step(t, 800, 16).steady).toBe(true);
-    Tracker.update(t, quad(0.03), 850);
+    Tracker.update(t, quad(0.045), 850); // vượt ngưỡng ra 4%, dưới ngưỡng nhảy 5%
     expect(Tracker.step(t, 860, 16).steady).toBe(false);
   });
 
   it('nhiễu nhỏ không làm mất trạng thái đứng yên (độ trễ)', () => {
     const t = Tracker.create();
     for (let now = 0; now <= 800; now += 50) Tracker.update(t, quad(), now);
-    Tracker.update(t, quad(0.018), 850); // vượt ngưỡng vào, dưới ngưỡng thoát
+    Tracker.update(t, quad(0.03), 850); // vượt ngưỡng vào 2%, dưới ngưỡng ra 4%
     expect(Tracker.step(t, 860, 16).steady).toBe(true);
   });
 
@@ -64,7 +72,7 @@ describe('Tracker', () => {
     const t = Tracker.create();
     let now = 0;
     for (; now <= 800; now += 50) Tracker.update(t, quad(), now);
-    for (let i = 1; i <= 10; i++, now += 50) Tracker.update(t, quad(i * 0.004), now);
+    for (let i = 1; i <= 10; i++, now += 50) Tracker.update(t, quad(i * 0.006), now);
     expect(Tracker.step(t, now, 16).steady).toBe(false);
   });
 

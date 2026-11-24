@@ -58,7 +58,7 @@ export default async function dataset(main, ctx) {
   const hasNeg = info.images > info.positives;
 
   // ---------------- chọn phiên bản ----------------
-  const chipRun = (r) => `<a class="chip${r.run === st.run ? " on ca" : ""}" href="${esc(link({ run: r.run, vs: st.vs === r.run ? null : st.vs }))}" title="${esc(`${r.detector || ""} · ${fmt.date(r.createdAt)}`)}"><span class="dot" style="--c:${COLORS.a}"></span><span class="mono">${esc(r.run)}</span><span class="count">${fmt.int(r.summary.images)}</span></a>`;
+  const chipRun = (r) => `<a class="chip${r.run === st.run ? " on ca" : ""}" href="${esc(link({ run: r.run, vs: st.vs === r.run ? null : st.vs }))}" title="${esc(`${r.detector || ""}, ${fmt.date(r.createdAt)}`)}"><span class="dot" style="--c:${COLORS.a}"></span><span class="mono">${esc(r.run)}</span><span class="count">${fmt.int(r.summary.images)}</span></a>`;
   const chipVs = (r) => `<a class="chip${r.run === st.vs ? " on cb" : ""}" href="${esc(link({ vs: r.run }))}" title="${esc(fmt.date(r.createdAt))}"><span class="dot" style="--c:${COLORS.b}"></span><span class="mono">${esc(r.run)}</span></a>`;
   const others = runs.filter((r) => r.run !== st.run);
   const runbar = runs.length ? `
@@ -74,7 +74,7 @@ export default async function dataset(main, ctx) {
       ${stats?.partial || (st.vs && stats && stats.images < runInfo(st.run).summary.images)
         ? `<div class="note">So sánh tính trên <b>${fmt.int(stats.images)}</b> ảnh có trong cả hai lượt chạy.</div>` : ""}
     </div>` : `
-    <div class="alert info">Chưa có lượt đánh giá nào cho bộ này — đang hiển thị đáp án. <a href="${esc(href("/eval", { ds }))}" style="color:var(--accent);font-weight:600">Chạy đánh giá</a></div>`;
+    <div class="alert info">Chưa có lượt đánh giá nào cho bộ này, đang hiển thị đáp án. <a href="${esc(href("/eval", { ds }))}" style="color:var(--accent);font-weight:600">Chạy đánh giá</a></div>`;
 
   // ---------------- chỉ số ----------------
   let metricsHtml = "";
@@ -86,7 +86,7 @@ export default async function dataset(main, ctx) {
       { k: "foundRate", t: "Tìm thấy", f: (v) => fmt.pct(v), dir: 1, sub: () => "trên ảnh có tài liệu" },
       { k: "cornerErr", t: "Lệch góc", f: (v) => fmt.pct(v, 2), dir: -1, sub: () => "TB / đường chéo ảnh" },
       ...(hasNeg ? [{ k: "falsePositive", t: "Báo nhầm", f: (v) => fmt.pct(v), dir: -1, sub: (s) => `trên ${fmt.int(s.negatives)} ảnh không có` }] : []),
-      { k: "msMedian", t: "Thời gian", f: fmt.ms, dir: -1, sub: (s) => `p95 ${fmt.ms(s.msP95)} · ${s.fps ?? "—"} FPS` },
+      { k: "msMedian", t: "Thời gian", f: fmt.ms, dir: -1, sub: (s) => `p95 ${fmt.ms(s.msP95)}, ${s.fps ?? "n/a"} FPS` },
     ];
     metricsHtml = `<div class="metrics">${M.map((m) => {
       const a = A[m.k], b = B?.[m.k];
@@ -106,7 +106,7 @@ export default async function dataset(main, ctx) {
   if (stats && stats.a.histogram?.length) {
     const ha = stats.a.histogram, hb = stats.b?.histogram;
     const max = Math.max(1, ...ha, ...(hb || []));
-    const bins = ha.map((n, i) => `<div class="bin" title="IoU ${(i / 10).toFixed(1)}–${((i + 1) / 10).toFixed(1)}: ${n}${hb ? ` / ${hb[i]}` : ""} ảnh"><div class="bars"><div class="bar" style="height:${(n / max) * 100}%"></div>${hb ? `<div class="bar b" style="height:${(hb[i] / max) * 100}%"></div>` : ""}</div></div>`).join("");
+    const bins = ha.map((n, i) => `<div class="bin" title="IoU ${(i / 10).toFixed(1)} đến ${((i + 1) / 10).toFixed(1)}: ${n}${hb ? ` / ${hb[i]}` : ""} ảnh"><div class="bars"><div class="bar" style="height:${(n / max) * 100}%"></div>${hb ? `<div class="bar b" style="height:${(hb[i] / max) * 100}%"></div>` : ""}</div></div>`).join("");
     const groups = stats.groups.length > 1 ? stats.groups : [];
     const gRows = groups.map((g) => {
       const d = g.b && g.a.meanIoU != null && g.b.meanIoU != null ? g.a.meanIoU - g.b.meanIoU : null;
@@ -117,10 +117,10 @@ export default async function dataset(main, ctx) {
         <td class="num">${fmt.pct(g.a.success, 0)}</td></tr>`;
     }).join("");
     chartsHtml = `<div class="two">
-      <div class="card"><div class="card-h"><h2>Phân bố IoU</h2><div class="legend"><span><span class="dot" style="--c:${COLORS.a}"></span>${esc(st.run)}</span>${st.vs ? `<span><span class="dot" style="--c:${COLORS.b}"></span>${esc(st.vs)}</span>` : ""}</div></div>
+      <div class="card c-teal"><div class="card-h"><h2>Phân bố IoU</h2><div class="legend"><span><span class="dot" style="--c:${COLORS.a}"></span>${esc(st.run)}</span>${st.vs ? `<span><span class="dot" style="--c:${COLORS.b}"></span>${esc(st.vs)}</span>` : ""}</div></div>
         <div class="card-b"><div class="hist">${bins}</div><div class="hist-x">${ha.map((_, i) => `<span>${(i / 10).toFixed(1)}</span>`).join("")}</div>
-        <p class="muted" style="font-size:12px;margin:8px 0 0">Chỉ ảnh có tài liệu. Cột cuối (0.9–1.0) càng cao càng tốt.</p></div></div>
-      <div class="card"><div class="card-h"><h2>Theo nhóm</h2><span class="muted">${groups.length ? "Bấm một nhóm để lọc ảnh" : "Bộ này không chia nhóm"}</span></div>
+        <p class="muted" style="font-size:12.5px;margin:8px 0 0">Mỗi cột là số ảnh có IoU trong khoảng đó, chỉ tính ảnh có tài liệu. Cột cuối (0,9 đến 1,0) càng cao càng tốt; cột đầu cao nghĩa là nhiều ảnh không thấy hoặc thấy sai hẳn.</p></div></div>
+      <div class="card c-amber"><div class="card-h"><h2>Theo nhóm</h2><span class="muted">${groups.length ? "Bấm một nhóm để lọc ảnh" : "Bộ này không chia nhóm"}</span></div>
         ${groups.length ? `<div class="scroll" style="max-height:290px"><table class="table"><thead><tr><th>Nhóm</th><th class="num">Ảnh</th><th class="num">IoU</th>${stats.b ? `<th class="num">IoU (so)</th><th class="num">Δ</th>` : ""}<th class="num">Success</th></tr></thead><tbody>${gRows}</tbody></table></div>` : ""}
       </div>
     </div>`;
@@ -172,10 +172,12 @@ export default async function dataset(main, ctx) {
   }
 
   main.innerHTML = `
-    <div class="page-head">
-      <div><h1>${esc(ds)}</h1><p>${fmt.int(info.images)} ảnh · ${fmt.int(info.images - info.positives)} không có tài liệu · ${info.groups.length} nhóm</p></div>
-      <details class="card" style="max-width:640px;padding:8px 12px"><summary style="cursor:pointer;font-weight:500">Về bộ dữ liệu</summary><pre class="readme">${esc(full.readme || "Không có README.")}</pre></details>
-    </div>
+    <header class="page-hero hero-teal">
+      <div><h1>${esc(ds)}</h1>
+        <p>Chọn một phiên bản để xem chỉ số và từng ảnh. Chọn thêm "So với" để đặt hai phiên bản cạnh nhau: ô xanh là tốt lên, đỏ là kém đi.</p>
+        <div class="facts"><span class="fact"><b>${fmt.int(info.images)}</b> ảnh</span><span class="fact"><b>${fmt.int(info.images - info.positives)}</b> không có tài liệu</span><span class="fact"><b>${info.groups.length}</b> nhóm</span><span class="fact"><b>${runs.length}</b> lượt đánh giá</span></div></div>
+      <details class="card" style="max-width:560px;padding:8px 12px"><summary style="cursor:pointer;font-weight:600">Về bộ dữ liệu</summary><pre class="readme">${esc(full.readme || "Không có README.")}</pre></details>
+    </header>
     ${runbar}
     ${metricsHtml}
     ${chartsHtml}
@@ -191,7 +193,7 @@ export default async function dataset(main, ctx) {
       <span><span class="ln" style="--c:${COLORS.gt}"></span>Đáp án</span>
       ${st.run ? `<span><span class="ln" style="--c:${COLORS.a}"></span>${esc(st.run)}</span>` : ""}
       ${st.vs ? `<span><span class="ln dash" style="--c:${COLORS.b}"></span>${esc(st.vs)}</span>` : ""}
-      <span class="grow"></span><span>${fmt.int(items.total)} ảnh${pages > 1 ? ` · trang ${st.page}/${pages}` : ""}</span>
+      <span class="grow"></span><span>${fmt.int(items.total)} ảnh${pages > 1 ? `, trang ${st.page}/${pages}` : ""}</span>
     </div>
     ${items.items.length ? `<div class="grid">${tiles}</div>` : `<div class="card empty">Không có ảnh nào khớp bộ lọc.</div>`}
     ${pager}`;

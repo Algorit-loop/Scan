@@ -1,8 +1,9 @@
-import { type ComponentType, forwardRef, type RefAttributes, useCallback, useImperativeHandle, useRef } from 'react';
+import { type ComponentType, forwardRef, type RefAttributes, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview';
 
 import { SCANNER_HTML } from './page.generated';
+import type { ScanSettings } from './settings';
 
 // react-native-webview 14.0.1 khai báo `class WebView<P = undefined>` nên props thành
 // `WebViewProps & undefined` = never. Ép lại kiểu cho đúng; runtime không đổi.
@@ -10,7 +11,7 @@ type WebViewInstance = WebView<object>;
 const TypedWebView = WebView as unknown as ComponentType<WebViewProps & RefAttributes<WebViewInstance>>;
 
 /** Gợi ý do trang quét tính (web/page.js > computeHint). */
-export type Hint = 'starting' | 'no-engine' | 'search' | 'dark' | 'closer' | 'farther' | 'hold' | 'ready';
+export type Hint = 'starting' | 'no-engine' | 'search' | 'dark' | 'closer' | 'farther' | 'hold' | 'ready' | 'found';
 
 export type Captured = { data: string; width: number; height: number; flattened: boolean };
 
@@ -24,6 +25,7 @@ export type ScannerHandle = {
 };
 
 type Props = {
+  settings: ScanSettings;
   onCamera?: (size: { width: number; height: number }) => void;
   onEngine?: (ok: boolean, message?: string) => void;
   onStatus?: (hint: Hint, steady: boolean) => void;
@@ -44,9 +46,16 @@ export const ScannerView = forwardRef<ScannerHandle, Props>(function ScannerView
   const handlers = useRef(props);
   handlers.current = props;
 
-  const post = (msg: object) => {
+  const post = useCallback((msg: object) => {
     webview.current?.injectJavaScript(`window.__rn && window.__rn(${JSON.stringify(msg)}); true;`);
-  };
+  }, []);
+  const sendConfig = useCallback(() => post({ type: 'config', ...handlers.current.settings }), [post]);
+
+  // Đổi tùy chọn -> báo trang ngay (trang cũng nhận lại khi camera/engine sẵn sàng, phòng lúc chưa tải xong).
+  const { detectSide, tracker } = props.settings;
+  useEffect(() => {
+    post({ type: 'config', detectSide, tracker });
+  }, [post, detectSide, tracker]);
 
   useImperativeHandle(ref, () => ({
     capture(timeoutMs = 15000) {
@@ -83,9 +92,11 @@ export const ScannerView = forwardRef<ScannerHandle, Props>(function ScannerView
     const h = handlers.current;
     switch (msg.type) {
       case 'camera':
+        sendConfig();
         h.onCamera?.({ width: msg.width, height: msg.height });
         break;
       case 'engine':
+        sendConfig();
         h.onEngine?.(!!msg.ok, msg.message);
         break;
       case 'status':
@@ -106,7 +117,7 @@ export const ScannerView = forwardRef<ScannerHandle, Props>(function ScannerView
         settle(msg.id, (p) => p.reject(new Error(String(msg.message))));
         break;
     }
-  }, []);
+  }, [sendConfig]);
 
   return (
     <TypedWebView

@@ -22,7 +22,7 @@ export default async function tryPage(main, ctx) {
 
   function detail() {
     if (!rec) {
-      return `<label class="drop big" id="dropBig"><b>Dán ảnh (Ctrl+V), kéo thả, hoặc bấm để chọn</b><small>JPG, PNG, WebP · nhiều ảnh cùng lúc · tối đa 40 MB/ảnh</small></label>`;
+      return `<label class="drop big" id="dropBig"><b>Dán ảnh (Ctrl+V), kéo thả, hoặc bấm để chọn</b><small>JPG, PNG, WebP. Nhiều ảnh cùng lúc, tối đa 40 MB mỗi ảnh. Ảnh được detect ngay bằng phiên bản đang chọn, kết quả lưu ở danh sách bên trái.</small></label>`;
     }
     const r = rec.result;
     const [W, H] = rec.imageSize;
@@ -30,8 +30,8 @@ export default async function tryPage(main, ctx) {
     const lines = showLines ? r.debug?.lines : null;
     const src = `/api/try/${encodeURIComponent(rec.id)}/files/original`;
     return `
-      <div class="page-head" style="margin-bottom:12px;align-items:center">
-        <div style="min-width:0"><h1 style="font-size:18px;overflow-wrap:anywhere">${esc(rec.filename)}</h1><p>${fmt.date(rec.createdAt)} · <span class="mono">${esc(rec.version)}${rec.size ? `@${rec.size}` : ""}</span></p></div>
+      <div class="page-hero slim hero-violet">
+        <div style="min-width:0"><h1 style="overflow-wrap:anywhere">${esc(rec.filename)}</h1><p>${fmt.date(rec.createdAt)}, <span class="mono">${esc(rec.version)}${rec.size ? `@${rec.size}` : ""}</span></p></div>
         <div style="display:flex;gap:8px">
           ${r.debug?.lines ? `<label class="chip${showLines ? " on" : ""}"><input type="checkbox" id="optLines"${showLines ? " checked" : ""}>Đường thẳng (${r.debug.lines.length})</label>` : ""}
           <a class="btn" href="${esc(src)}" target="_blank" rel="noopener">Ảnh gốc ↗</a>
@@ -41,9 +41,9 @@ export default async function tryPage(main, ctx) {
       <div class="try-view">
         <div class="card viewer"><div class="stage">${shot({ src, w: W, h: H, layers, lines, lazy: false, badge: r.found ? "" : `<span class="badge bad">Không tìm thấy (${esc(r.reason)})</span>` })}</div></div>
         <div style="display:flex;flex-direction:column;gap:12px">
-          ${rec.files.warped ? `<div class="card"><div class="card-h"><h2>Nắn phẳng</h2></div><div class="warped"><img src="/api/try/${encodeURIComponent(rec.id)}/files/warped" alt="Tài liệu đã nắn phẳng"></div></div>` : ""}
-          <div class="card"><div class="card-h"><h2>Kết quả</h2></div><div class="card-b"><dl class="kv">
-            <dt>Kết quả</dt><dd>${r.found ? `tìm thấy · ${esc(r.method)}` : `không thấy (${esc(r.reason)})`}</dd>
+          ${rec.files.warped ? `<div class="card c-green"><div class="card-h"><h2>Nắn phẳng</h2></div><div class="warped"><img src="/api/try/${encodeURIComponent(rec.id)}/files/warped" alt="Tài liệu đã nắn phẳng"></div></div>` : ""}
+          <div class="card c-violet"><div class="card-h"><h2>Kết quả</h2></div><div class="card-b"><dl class="kv">
+            <dt>Kết quả</dt><dd>${r.found ? `tìm thấy (${esc(r.method)})` : `không thấy (${esc(r.reason)})`}</dd>
             ${r.found ? `<dt>Độ tin cậy</dt><dd>${r.confidence.toFixed(3)}</dd><dt>Diện tích</dt><dd>${fmt.pct(r.areaRatio)}</dd>` : ""}
             <dt>Detect</dt><dd>${fmt.ms(rec.timingsMs.detect)}</dd>
             <dt>Đọc ảnh</dt><dd>${fmt.ms(rec.timingsMs.decode)}</dd>
@@ -59,6 +59,9 @@ export default async function tryPage(main, ctx) {
 
   function render() {
     main.innerHTML = `
+      ${rec ? "" : `<header class="page-hero hero-violet">
+        <div><h1>Thử ảnh</h1><p>Đưa một ảnh bất kỳ vào để xem detect tìm được bốn góc nào và ảnh sau khi nắn phẳng. Chọn phiên bản và cỡ letterbox (cạnh ảnh vuông đưa vào detect) ở cột trái.</p></div>
+      </header>`}
       <div class="try">
         <div style="display:flex;flex-direction:column;gap:14px">
           <div class="card"><div class="card-b" style="display:flex;flex-direction:column;gap:12px">
@@ -66,7 +69,7 @@ export default async function tryPage(main, ctx) {
             <div class="field"><span class="label">Letterbox</span><div class="chips">${SIZES.map((s) => `<label class="chip${s === size ? " on" : ""}"><input type="radio" name="ts" value="${s}"${s === size ? " checked" : ""}>${s}</label>`).join("")}</div></div>
             <label class="drop" id="drop"><input type="file" id="file" accept="image/*" multiple hidden><b>+ Thêm ảnh</b><small>hoặc dán / kéo thả vào trang</small></label>
           </div></div>
-          <div class="card"><div class="card-h"><h2>Đã thử</h2><span class="muted">${list.length}</span></div><div class="hist-list">${historyHtml}</div></div>
+          <div class="card c-violet"><div class="card-h"><h2>Đã thử</h2><span class="muted">${list.length}</span></div><div class="hist-list">${historyHtml}</div></div>
         </div>
         <div>${detail()}</div>
       </div>`;

@@ -23,11 +23,11 @@ export default async function evalPage(main, ctx) {
       const done = (s.finished || []).includes(ds);
       const cur = s.running && ds === s.dataset;
       const pct = done ? 100 : cur ? s.percent || 0 : 0;
-      const note = done ? "xong" : cur ? `${fmt.int(s.done)}/${fmt.int(s.total)}${s.etaSeconds != null ? ` · còn ${s.etaSeconds < 90 ? `${s.etaSeconds}s` : `${Math.round(s.etaSeconds / 60)} phút`}` : ""}` : "chờ";
+      const note = done ? "xong" : cur ? `${fmt.int(s.done)}/${fmt.int(s.total)}${s.etaSeconds != null ? `, còn ${s.etaSeconds < 90 ? `${s.etaSeconds}s` : `${Math.round(s.etaSeconds / 60)} phút`}` : ""}` : "chờ";
       const link = href(`/d/${encodeURIComponent(ds)}`, { run: `${s.version}@${s.size}` });
       return `<div class="q"><span>${done ? `<a href="${esc(link)}" style="color:var(--accent)">${esc(ds)} →</a>` : esc(ds)}</span><div class="progress"><i style="width:${pct}%"></i></div><span class="muted num" style="text-align:right">${note}</span></div>`;
     }).join("");
-    const head = s.running ? `Đang chạy <b class="mono">${esc(s.version)}@${esc(s.size)}</b>${s.limit ? ` · ${s.limit} ảnh/bộ` : ""}`
+    const head = s.running ? `Đang chạy <b class="mono">${esc(s.version)}@${esc(s.size)}</b>${s.limit ? `, ${s.limit} ảnh mỗi bộ` : ""}`
       : s.error ? `<span class="down">Lỗi</span>` : s.cancelled ? "Đã dừng" : `Xong <b class="mono">${esc(s.version)}@${esc(s.size)}</b>`;
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>${head}</span>${s.running ? `<button class="btn sm danger" id="cancel" type="button">Dừng</button>` : ""}</div>
       <div class="queue">${rows}</div>
@@ -48,16 +48,16 @@ export default async function evalPage(main, ctx) {
   function render() {
     const running = status.running;
     main.innerHTML = `
-      <div class="page-head"><div><h1>Chạy đánh giá</h1><p>Chạy một phiên bản detect trên các bộ dữ liệu, ghi vào <span class="mono">Core/results/&lt;phiên bản&gt;@&lt;letterbox&gt;/&lt;bộ&gt;.json</span>. Chạy lại cùng cấu hình sẽ ghi đè.</p></div></div>
+      <header class="page-hero hero-amber"><div><h1>Chạy đánh giá</h1><p>Chạy một phiên bản detect trên các bộ dữ liệu rồi so với nhãn đúng. Kết quả ghi vào <span class="mono">Core/results/&lt;phiên bản&gt;@&lt;letterbox&gt;/&lt;bộ&gt;.json</span> và hiện ngay ở Tổng quan. Chạy lại cùng cấu hình sẽ ghi đè.</p></div></header>
       <div class="eval-grid">
-        <div class="card"><div class="card-h"><h2>Cấu hình</h2></div><div class="card-b form">
+        <div class="card c-amber"><div class="card-h"><h2>Cấu hình</h2></div><div class="card-b form">
           <div class="field"><span class="label">Phiên bản detect</span><div class="chips">${dets.map((d) => `<label class="chip${d.version === form.version ? " on" : ""}" title="${esc(d.description)}"><input type="radio" name="ev" value="${esc(d.version)}"${d.version === form.version ? " checked" : ""}><b class="mono">${esc(d.version)}</b> <span class="count">${esc(d.name)}</span></label>`).join("")}</div></div>
           <div class="field"><span class="label">Letterbox (cạnh ảnh vuông đưa vào detect)</span><div class="chips">${[...new Set([...SIZES, form.size])].sort((a, b) => a - b).map((s) => `<label class="chip${s === form.size ? " on" : ""}"><input type="radio" name="es" value="${s}"${s === form.size ? " checked" : ""}>${s}</label>`).join("")}</div></div>
           <div class="field"><span class="label">Bộ dữ liệu</span><div class="chips">${ctx.meta.datasets.map((d) => `<label class="chip${form.datasets.has(d.name) ? " on" : ""}"><input type="checkbox" name="ed" value="${esc(d.name)}"${form.datasets.has(d.name) ? " checked" : ""}>${esc(d.name)}<span class="count">${fmt.int(d.images)}</span></label>`).join("")}</div></div>
-          <div class="field"><span class="label">Giới hạn số ảnh mỗi bộ</span><input class="input" id="limit" type="number" min="1" placeholder="Để trống = tất cả (lấy rải đều)" value="${esc(form.limit)}" style="max-width:280px"></div>
+          <div class="field"><span class="label">Giới hạn số ảnh mỗi bộ (để thử nhanh)</span><input class="input" id="limit" type="number" min="1" placeholder="Để trống = tất cả (lấy rải đều)" value="${esc(form.limit)}" style="max-width:280px"></div>
           <div><button class="btn primary" id="start" type="button"${running || !form.datasets.size ? " disabled" : ""}>${running ? "Đang chạy…" : `Chạy ${esc(form.version)}@${form.size}`}</button></div>
         </div></div>
-        <div class="card"><div class="card-h"><h2>Tiến độ</h2></div><div class="card-b" id="status">${statusHtml()}</div></div>
+        <div class="card c-amber"><div class="card-h"><h2>Tiến độ</h2></div><div class="card-b" id="status">${statusHtml()}</div></div>
       </div>
       <div class="card" style="margin-top:14px"><div class="card-h"><h2>Các kết quả đã có</h2><span class="muted">bấm để xem</span></div>${resultsHtml()}</div>`;
   }
@@ -73,7 +73,7 @@ export default async function evalPage(main, ctx) {
     if (ctx.stale()) return;
     if (wasRunning && !status.running) {
       await ctx.refreshMeta();
-      toast(status.error ? "Đánh giá lỗi" : status.cancelled ? "Đã dừng" : "Đánh giá xong — kết quả đã cập nhật");
+      toast(status.error ? "Đánh giá lỗi" : status.cancelled ? "Đã dừng" : "Đánh giá xong, kết quả đã cập nhật");
       render();
     } else {
       main.querySelector("#status").innerHTML = statusHtml();
