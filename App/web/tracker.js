@@ -12,7 +12,7 @@
  */
 var Tracker = (function () {
   var DEFAULTS = {
-    confirmHits: 2,
+    confirmHits: 3,
     jumpDist: 0.05, // theo góc lệch nhiều nhất: ứng viên sai thường chỉ lệch 1-2 góc
     holdMs: 450,
     fadeMs: 220,

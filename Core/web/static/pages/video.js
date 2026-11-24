@@ -1,5 +1,8 @@
 import { api, esc } from "../lib.js";
 
+/** 0.017 -> "1,7%" (tối đa một chữ số thập phân, dấu phẩy kiểu Việt). */
+const pct = (v) => `${(Math.round(v * 1000) / 10).toLocaleString("vi-VN")}%`;
+
 // Trang /video: luồng xử lý video của app, phát lại trên video SmartDoc thật.
 // Detect chạy ngay trong trình duyệt bằng engine của app (/api/video/engine.js = docdetect.js + App/web/worker.js),
 // Tracker là App/web/tracker.js. Sửa app rồi tải lại trang là thấy kết quả mới.
@@ -199,7 +202,7 @@ function ruleDemos(T) {
           { points: ticks.map((k) => [k.now, k.s.quad && k.s.opacity > 0.05 ? k.s.quad[0] : null]), color: "var(--b)" }],
         marks: [{ x: 100, label: "nhận nhầm 1 lần", color: "var(--c-red)" }] }),
       `Một lần nhận nhầm lẻ tẻ (100 ms) không làm khung hiện lên. Tài liệu thật hiện ở lần thấy thứ ${D.confirmHits}.`,
-      `Detect đôi khi khoanh nhầm một vật hình chữ nhật trong đúng một khung rồi thôi. Nếu vẽ ngay, người dùng thấy một khung lóe lên rồi tắt. Chờ thấy cùng một chỗ ${D.confirmHits} lần liên tiếp chỉ làm khung hiện chậm khoảng một nhịp detect (vài chục ms), mắt gần như không nhận ra.`]);
+      `Detect đôi khi khoanh nhầm một vật hình chữ nhật trong đúng một khung rồi thôi. Nếu vẽ ngay, người dùng thấy một khung lóe lên rồi tắt. Chờ thấy cùng một chỗ ${D.confirmHits} lần liên tiếp chỉ làm khung hiện chậm thêm ${D.confirmHits - 1} nhịp detect (vài chục ms mỗi nhịp), mắt gần như không nhận ra.`]);
   }
   {
     const r = seeded(7), ev = [];
@@ -255,7 +258,7 @@ function ruleDemos(T) {
       chart({ xMax: 2600, yMax: top, yLabel: "lệch so với vị trí đầu", h: 170,
         bands: [...bands(a, "steady", "var(--c-green)", 0.3, { y0: top / 2, y1: top }), ...bands(b, "steady", "var(--c-amber)", 0.3, { y0: 0, y1: top / 2 })],
         series: [{ points: ev.map((e) => [e[0], err(e[1])]), dots: true, color: "var(--c-red)" }] }),
-      `Xanh khi các lần detect nằm trong ${Math.round(D.steadyDist * 100)}% quanh một mốc suốt ${D.steadyMs} ms, chỉ mất xanh khi lệch quá ${Math.round(D.steadyExitDist * 100)}%. Dải trên là cài đặt hiện tại, dải dưới là nếu không có độ trễ: bật tắt liên tục.`,
+      `Xanh khi các lần detect nằm trong ${pct(D.steadyDist)} quanh một mốc suốt ${D.steadyMs} ms, chỉ mất xanh khi lệch quá ${pct(D.steadyExitDist)}. Dải trên là cài đặt hiện tại, dải dưới là nếu không có độ trễ: bật tắt liên tục.`,
       `Khung xanh nghĩa là "chụp bây giờ sẽ nét và đúng khung". Tay người không bao giờ đứng yên tuyệt đối, nên ngưỡng vào phải chừa chỗ cho rung tay. Mốc được giữ cố định thay vì so với lần trước, để máy trôi chậm vẫn bị phát hiện. Ngưỡng ra rộng hơn ngưỡng vào (độ trễ) để khung đã xanh không chớp vàng chỉ vì nhiễu detect.`]);
   }
   return demos;

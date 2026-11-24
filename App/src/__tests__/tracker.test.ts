@@ -7,20 +7,23 @@ const quad = (dx = 0, dy = 0) => [0.2 + dx, 0.2 + dy, 0.8 + dx, 0.2 + dy, 0.8 + 
 describe('Tracker', () => {
   it('chỉ hiện khung sau khi thấy liên tiếp đủ số lần', () => {
     const t = Tracker.create();
+    expect(Tracker.create().o.confirmHits).toBe(3);
     Tracker.update(t, quad(), 0);
     expect(Tracker.step(t, 16, 16).visible).toBe(false);
     Tracker.update(t, quad(0.005), 60);
-    expect(Tracker.step(t, 76, 16).visible).toBe(true);
+    expect(Tracker.step(t, 76, 16).visible).toBe(false);
+    Tracker.update(t, quad(0.005), 120);
+    expect(Tracker.step(t, 136, 16).visible).toBe(true);
   });
 
-  it('bỏ qua một lần detect nhảy xa, đi theo khi nhảy được xác nhận', () => {
+  it('bỏ qua detect nhảy xa lẻ tẻ, đi theo khi nhảy được xác nhận', () => {
     const t = Tracker.create();
-    Tracker.update(t, quad(), 0);
-    Tracker.update(t, quad(), 50);
-    Tracker.update(t, quad(0.3), 100); // lẻ tẻ
-    expect(Tracker.current(t, 100)![0]).toBeCloseTo(0.2, 5);
-    Tracker.update(t, quad(0.3), 150); // xác nhận
-    expect(Tracker.current(t, 150)![0]).toBeCloseTo(0.5, 5);
+    for (let now = 0; now <= 100; now += 50) Tracker.update(t, quad(), now);
+    Tracker.update(t, quad(0.3), 150); // lẻ tẻ
+    Tracker.update(t, quad(0.3), 200); // vẫn chưa đủ
+    expect(Tracker.current(t, 200)![0]).toBeCloseTo(0.2, 5);
+    Tracker.update(t, quad(0.3), 250); // lần thứ 3: xác nhận
+    expect(Tracker.current(t, 250)![0]).toBeCloseTo(0.5, 5);
   });
 
   it('bỏ qua ứng viên sai chỉ lệch hai góc, giữ trạng thái đứng yên', () => {
@@ -45,10 +48,9 @@ describe('Tracker', () => {
 
   it('làm mượt rung nhỏ', () => {
     const t = Tracker.create();
-    Tracker.update(t, quad(), 0);
-    Tracker.update(t, quad(), 50);
-    Tracker.update(t, quad(0.01), 100);
-    const x = Tracker.current(t, 100)![0];
+    for (let now = 0; now <= 100; now += 50) Tracker.update(t, quad(), now);
+    Tracker.update(t, quad(0.01), 150);
+    const x = Tracker.current(t, 150)![0];
     expect(x).toBeGreaterThan(0.2);
     expect(x).toBeLessThan(0.205);
   });
@@ -71,9 +73,8 @@ describe('Tracker', () => {
 
   it('giữ khung một lúc khi mất dấu rồi bỏ', () => {
     const t = Tracker.create();
-    Tracker.update(t, quad(), 0);
-    Tracker.update(t, quad(), 50);
-    Tracker.update(t, null, 100);
+    for (let now = 0; now <= 100; now += 50) Tracker.update(t, quad(), now);
+    Tracker.update(t, null, 150);
     expect(Tracker.step(t, 300, 16).visible).toBe(true);
     expect(Tracker.step(t, 600, 16).visible).toBe(false);
     Tracker.step(t, 800, 16);
