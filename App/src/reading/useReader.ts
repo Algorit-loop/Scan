@@ -35,14 +35,16 @@ const LANGUAGE = 'vi-VN';
  * Điều khiển đọc từng câu bằng giọng đọc của máy (expo-speech: AVSpeechSynthesizer trên iOS, TextToSpeech trên Android
  * — không cần mạng). Ba thao tác chính: câu trước / đọc lại / câu sau; rung nhẹ khi chạm đầu hoặc cuối bài.
  *
+ * `initialIndex`: câu đang chọn lúc bắt đầu (mở lại từ lịch sử: câu đang đọc dở).
+ *
  * Mỗi lần đọc mang một số hiệu (`run`): sự kiện của lần đọc cũ (đã bị ngắt) không được đụng vào trạng thái của lần mới.
  */
-export function useReader(sentences: Sentence[], options: ReaderOptions): Reader {
-  const [index, setIndex] = useState(-1);
+export function useReader(sentences: Sentence[], options: ReaderOptions, initialIndex = -1): Reader {
+  const [index, setIndex] = useState(initialIndex);
   const [speaking, setSpeaking] = useState(false);
   const [hasVietnameseVoice, setHasVietnameseVoice] = useState<boolean | null>(null);
   const run = useRef(0);
-  const current = useRef(-1);
+  const current = useRef(initialIndex);
   // Giá trị mới nhất cho các callback chạy sau (onDone của giọng đọc), cập nhật sau mỗi lần render.
   const latest = useRef({ sentences, options });
   useEffect(() => {

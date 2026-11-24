@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 /** Tùy chọn của app (lưu trên máy). */
 export type ScanSettings = {
@@ -31,22 +31,44 @@ export const DEFAULT_SETTINGS: ScanSettings = {
   speechRate: 1,
 };
 
+// Một kho dùng chung cho mọi màn: đổi ở Cài đặt là màn kết quả / màn quét đang mở thấy ngay.
+let settings: ScanSettings = DEFAULT_SETTINGS;
+let loading: Promise<void> | null = null;
+const listeners = new Set<() => void>();
+
+function emit() {
+  for (const l of listeners) l();
+}
+
+function load() {
+  loading ??= AsyncStorage.getItem(KEY)
+    .then((raw) => {
+      if (raw) {
+        settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+        emit();
+      }
+    })
+    .catch(() => {});
+  return loading;
+}
+
+function subscribe(l: () => void) {
+  listeners.add(l);
+  load();
+  return () => {
+    listeners.delete(l);
+  };
+}
+
+export function updateScanSettings(patch: Partial<ScanSettings>) {
+  // Chờ đọc xong bản đã lưu rồi mới áp thay đổi, để bản đã lưu không ghi đè lên thay đổi vừa bấm.
+  load().then(() => {
+    settings = { ...settings, ...patch };
+    AsyncStorage.setItem(KEY, JSON.stringify(settings)).catch(() => {});
+    emit();
+  });
+}
+
 export function useScanSettings(): [ScanSettings, (patch: Partial<ScanSettings>) => void] {
-  const [settings, setSettings] = useState<ScanSettings>(DEFAULT_SETTINGS);
-
-  useEffect(() => {
-    AsyncStorage.getItem(KEY)
-      .then((raw) => raw && setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(raw) }))
-      .catch(() => {});
-  }, []);
-
-  const update = useCallback((patch: Partial<ScanSettings>) => {
-    setSettings((prev) => {
-      const next = { ...prev, ...patch };
-      AsyncStorage.setItem(KEY, JSON.stringify(next)).catch(() => {});
-      return next;
-    });
-  }, []);
-
-  return [settings, update];
+  return [useSyncExternalStore(subscribe, () => settings), updateScanSettings];
 }

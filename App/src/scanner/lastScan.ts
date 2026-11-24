@@ -20,6 +20,10 @@ export type Scan = {
   mode: ScanMode;
   /** Có bản "Rõ chữ" để chuyển qua lại không. */
   hasEnhanced: boolean;
+  /** Mục lịch sử chứa bản quét này (null: chưa lưu — đang phân tích, hoặc không lưu được). */
+  historyId: string | null;
+  /** true: mở lại từ lịch sử (ảnh nằm trong thư mục lịch sử, không phải cache). */
+  fromHistory: boolean;
 };
 
 /** Các bước của dây chuyền sau khi chụp (xem reading/runAnalysis.ts). */
@@ -55,8 +59,9 @@ export type AnalysisState =
     }
   | { status: 'error'; step: AnalysisStep; message: string };
 
-/** Chỉ giữ ảnh vừa chụp (trong cache), ảnh cũ bị xóa khi có ảnh mới. */
+/** Chỉ giữ ảnh vừa chụp (trong cache), ảnh cũ bị xóa khi có ảnh mới. Ảnh của mục lịch sử thì không bao giờ xóa ở đây. */
 let variants: Partial<Record<ScanMode, Variant>> = {};
+let ownsFiles = true;
 let last: Scan | null = null;
 let analysis: AnalysisState | null = null;
 let nextScanId = 1;
@@ -90,13 +95,68 @@ export async function saveScan(
   const size = { width: info.width, height: info.height };
   const next: Partial<Record<ScanMode, Variant>> = { original: { uri: await writeJpeg(base64Jpeg), ...size } };
   if (enhancedBase64) next.enhanced = { uri: await writeJpeg(enhancedBase64), ...size };
-  for (const v of Object.values(variants)) deleteFile(v.uri);
+  dropCurrentFiles();
   variants = next;
+  ownsFiles = true;
   const mode: ScanMode = next.enhanced ? 'enhanced' : 'original';
-  last = { id: nextScanId++, ...next[mode]!, flattened: info.flattened, mode, hasEnhanced: !!next.enhanced };
+  last = {
+    id: nextScanId++,
+    ...next[mode]!,
+    flattened: info.flattened,
+    mode,
+    hasEnhanced: !!next.enhanced,
+    historyId: null,
+    fromHistory: false,
+  };
   analysis = null;
   emit();
   return last;
+}
+
+function dropCurrentFiles() {
+  if (ownsFiles) for (const v of Object.values(variants)) deleteFile(v.uri);
+}
+
+/**
+ * Đưa một mục lịch sử lên làm bản quét hiện tại (màn kết quả hiển thị y như vừa quét xong): ảnh trỏ thẳng vào thư mục
+ * lịch sử, kết quả phân tích lấy từ file đã lưu.
+ */
+export function restoreScan(input: {
+  historyId: string;
+  variants: Partial<Record<ScanMode, Variant>>;
+  flattened: boolean;
+  analysis: Extract<AnalysisState, { status: 'done' }>;
+}): Scan | null {
+  const mode: ScanMode = input.variants.enhanced ? 'enhanced' : 'original';
+  const shown = input.variants[mode];
+  if (!shown) return null;
+  dropCurrentFiles();
+  variants = input.variants;
+  ownsFiles = false;
+  last = {
+    id: nextScanId++,
+    ...shown,
+    flattened: input.flattened,
+    mode,
+    hasEnhanced: !!input.variants.enhanced,
+    historyId: input.historyId,
+    fromHistory: true,
+  };
+  analysis = input.analysis;
+  emit();
+  return last;
+}
+
+/** Ghi nhận bản quét `id` đã được lưu thành mục lịch sử `historyId`. */
+export function attachHistory(id: number, historyId: string) {
+  if (last?.id !== id) return;
+  last = { ...last, historyId };
+  emit();
+}
+
+/** Mọi bản ảnh của bản quét `id` (rỗng nếu đã có bản quét mới hơn). */
+export function getVariants(id: number): Partial<Record<ScanMode, Variant>> {
+  return last?.id === id ? { ...variants } : {};
 }
 
 /** Chuyển bản đang xem. Hai bản cùng hình học nên kết quả phân tích (chữ, khung) giữ nguyên. */
@@ -123,7 +183,7 @@ export function replaceVariants(id: number, next: Partial<Record<ScanMode, Varia
   }
   for (const mode of Object.keys(next) as ScanMode[]) {
     const old = variants[mode];
-    if (old && old.uri !== next[mode]!.uri) deleteFile(old.uri);
+    if (ownsFiles && old && old.uri !== next[mode]!.uri) deleteFile(old.uri);
     variants[mode] = next[mode];
   }
   last = { ...last, ...variants[last.mode]! };

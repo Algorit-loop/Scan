@@ -1,0 +1,14 @@
+{
+  "name": "scan-server",
+  "version": "1.0.0",
+  "description": "Server đăng ký / đăng nhập cho app Scan Trợ Giúp (Node thuần, SQLite có sẵn, không cần cài gói nào)",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "node --test"
+  }
+}

@@ -2,7 +2,18 @@ import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 import { analyzeLayout, type LayoutResult } from '../layout/LayoutEngine';
 import { recognizeText } from '../ocr/OcrEngine';
-import { type AnalysisTimings, getLastScan, getVariant, replaceVariants, type ScanMode, setAnalysis, type Variant } from '../scanner/lastScan';
+import { addToHistory } from '../history/store';
+import {
+  type AnalysisTimings,
+  attachHistory,
+  getLastScan,
+  getVariant,
+  getVariants,
+  replaceVariants,
+  type ScanMode,
+  setAnalysis,
+  type Variant,
+} from '../scanner/lastScan';
 import { composeDocument } from './compose';
 
 /** Mốc thời gian từ lúc chụp xong tới lúc có nội dung để đọc; vượt thì màn kết quả báo. */
@@ -19,6 +30,7 @@ let token = 0;
  *     -> 3. nhận dạng chữ         (OcrEngine: khử bóng + Tesseract tiếng Việt)
  *     -> 4. ghép đoạn, tách câu   (compose.ts)
  *     -> nội dung để đọc từng câu (màn kết quả + useReader)
+ *     -> 5. lưu vào lịch sử trên máy (ảnh + nội dung; câu đang đọc dở được ghi lại sau)
  *
  * Luôn đọc từ bản gốc: bản "Rõ chữ" đã tăng nét / đậm chữ cho mắt người, không phải cho OCR.
  * Bước 1 lỗi thì vẫn đi tiếp (coi như trang đã thẳng): thà đọc được chữ còn hơn dừng hẳn.
@@ -77,6 +89,13 @@ export async function runAnalysis(): Promise<void> {
         `tiền xử lý ${Math.round(ms.ocrPre)} · nhận dạng ${Math.round(ms.ocr)} [${ocr.ocrSize.join('x')}] · tách câu ${ms.compose})`,
     );
     setAnalysis(id, { status: 'done', at: Date.now(), doc, layout, ocrSize: ocr.ocrSize, ms });
+    // 5. Lưu lịch sử ở nền (không chặn việc đọc). Ảnh không có chữ thì không lưu. Bấm "Thử lại" trên một bản đã lưu
+    //    thì không lưu thêm lần nữa.
+    if (doc.sentences.length && !scan.fromHistory && !getLastScan()?.historyId) {
+      addToHistory({ variants: getVariants(id), flattened: scan.flattened, content: { doc, layout, ocrSize: ocr.ocrSize, ms } }).then(
+        (historyId) => historyId && attachHistory(id, historyId),
+      );
+    }
   } catch (e) {
     console.log(`[đọc] #${id} LỖI nhận dạng chữ: ${(e as Error).message}`);
     if (!stale()) setAnalysis(id, { status: 'error', step: 'ocr', message: (e as Error).message });

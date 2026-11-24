@@ -1,12 +1,13 @@
 # Scan Trợ Giúp
 
-App giúp người khiếm thị quét tài liệu: hướng dẫn cho tới khi tài liệu nằm đúng khung, chụp lại thành ảnh phẳng, rõ, rồi nhận dạng chữ và đọc nội dung thành tiếng từng câu — tất cả chạy trên điện thoại, không cần mạng.
+App giúp người khiếm thị quét tài liệu: hướng dẫn cho tới khi tài liệu nằm đúng khung, chụp lại thành ảnh phẳng, rõ, rồi nhận dạng chữ và đọc nội dung thành tiếng từng câu — tất cả chạy trên điện thoại, không cần mạng. Chỉ đăng ký / đăng nhập là cần mạng (thư mục `Server/`); lịch sử quét lưu trên máy.
 
 ## Cấu trúc
 
 ```
 Scan/
 ├── App/    app điện thoại (Expo): src/, assets/, package.json
+├── Server/ server đăng ký / đăng nhập (Node thuần + SQLite) — chỉ lo tài khoản, xem Server/README.md
 └── Core/   công nghệ lõi: nhận diện tài liệu (tìm 4 góc)
     ├── detect/     các phiên bản detect: v1 (Python/OpenCV), v2 (gọi thư viện C++)
     ├── native/     thư viện C++ docdetect (v2, dùng chung cho mobile)
@@ -25,6 +26,7 @@ Scan/
 ```powershell
 .\Core\run.ps1                              # web visualize: http://localhost:8000/
 . .\activate.ps1; cd App; npx expo start    # app, quét QR bằng Expo Go
+.\Server\run.ps1                            # server đăng nhập / đăng ký (cổng 4000), cần cho lần đăng nhập đầu
 ```
 
 ### Web visualize
@@ -172,8 +174,47 @@ npm test            # tách câu (kể cả trên kết quả OCR thật trong s
 npm run check:layout -- ảnh.jpg
 ```
 
-Chưa làm: bản `AndroidApp/` (APK, onnxruntime native) chưa được cập nhật theo dây chuyền mới — danh sách đồng bộ đã thêm
-`src/ocr`, `src/reading`, `src/engine`, `web/ocr*` nhưng `LayoutEngine` / `build-web` riêng của nó cần sửa theo rồi build lại.
+Chưa làm: bản `AndroidApp/` (APK, onnxruntime native) chưa được cập nhật theo dây chuyền mới (OCR, tài khoản, lịch sử) —
+`LayoutEngine` / `build-web` / danh sách đồng bộ riêng của nó cần sửa theo rồi build lại.
+
+### App: tài khoản, ba mục chính, lịch sử
+
+Mở app → chưa đăng nhập thì chỉ thấy **Đăng nhập / Đăng ký** (cần mạng, gọi `Server/`); đăng nhập rồi thì vào ba mục ở
+thanh dưới: **Trang chủ** (nút quét, "Đọc tiếp" tài liệu gần nhất), **Lịch sử**, **Cài đặt**.
+
+- **Tài khoản**: token nằm trong kho bảo mật của máy (`expo-secure-store`), hồ sơ lưu ở AsyncStorage. Đã đăng nhập thì
+  dùng app không cần mạng: lúc mở app chỉ hỏi lại server ở nền, mất mạng thì giữ nguyên, server báo token hết hiệu lực
+  mới đăng xuất. Cài đặt có: sửa tên / email (đổi email cần mật khẩu), đổi mật khẩu, đăng xuất, xóa tài khoản.
+- **Địa chỉ máy chủ**: mặc định là máy tính đang chạy Expo, cổng 4000 (lấy từ `hostUri` của Expo Go); đổi được ở mục
+  "Máy chủ" trên màn đăng nhập / Cài đặt, hoặc bằng `EXPO_PUBLIC_API_URL`.
+- **Lịch sử** — chỉ lưu trên điện thoại, mỗi tài khoản một thư mục:
+  `<thư mục tài liệu của app>/history/<id người dùng>/index.json` + `<id mục>/original.jpg, enhanced.jpg, doc.json`.
+  Mỗi lần quét xong (có chữ) tự lưu một mục; tối đa 100 mục, quá thì bỏ mục cũ nhất. Mỗi mục nhớ **câu đang đọc dở**
+  (ghi lại mỗi khi chuyển câu). Chạm một mục → màn kết quả y như lúc vừa quét (không nhận dạng lại) và đọc tiếp từ câu
+  đó. Nhấn giữ hoặc bấm "Xóa" để xóa.
+
+```
+App/
+├── src/app/_layout.tsx                 gốc: 2 engine WebView + điều hướng; chia màn theo trạng thái đăng nhập
+├── src/app/login.tsx, register.tsx     đăng nhập / đăng ký
+├── src/app/(tabs)/                     index (Trang chủ), history (Lịch sử), settings (Cài đặt) + thanh dưới
+├── src/app/profile.tsx, password.tsx   sửa thông tin / xóa tài khoản, đổi mật khẩu
+├── src/app/scan.tsx, result.tsx        màn quét, màn kết quả (dùng cho cả bản vừa quét lẫn mục lịch sử)
+├── src/auth/api.ts, url.ts             gọi server, địa chỉ server, lỗi có thông báo tiếng Việt
+├── src/auth/session.ts                 phiên đăng nhập (khôi phục, đăng nhập, đăng xuất, sửa hồ sơ...)
+├── src/auth/AuthScreen.tsx             khung màn đăng nhập / đăng ký + mục "Máy chủ"
+├── src/history/store.ts                lưu / đọc / xóa lịch sử trên máy, ghi câu đang đọc
+├── src/history/open.ts                 mở một mục lịch sử lên màn kết quả
+├── src/history/summary.ts              tiêu đề mục, ngày giờ, tiến độ đọc
+└── src/components/                     Button, TextField, TabIcon, ReaderBar...
+```
+
+Chạy thử cả hai (hai cửa sổ PowerShell, từ thư mục gốc):
+
+```powershell
+.\Server\run.ps1                                  # server đăng nhập, cổng 4000
+. .\activate.ps1; cd App; npx expo start -c       # app, quét QR bằng Expo Go (điện thoại cùng Wi-Fi với máy tính)
+```
 
 ### Detect v3 (C++)
 

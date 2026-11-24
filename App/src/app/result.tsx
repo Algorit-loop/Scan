@@ -9,6 +9,8 @@ import { BackButton } from '../components/BackButton';
 import { ReaderBar } from '../components/ReaderBar';
 import { Segment } from '../components/Segment';
 import { ZoomableView } from '../components/ZoomableView';
+import { getHistoryItem, setCheckpoint } from '../history/store';
+import { formatWhen } from '../history/summary';
 import type { LayoutRegion } from '../layout/LayoutEngine';
 import { labelInfo } from '../layout/labels';
 import type { Box, ReadingDoc } from '../reading/compose';
@@ -26,6 +28,7 @@ type Done = Extract<AnalysisState, { status: 'done' }>;
  * Trang kết quả: ảnh đã nắn phẳng + nội dung đọc được, đọc thành tiếng từng câu.
  * Trên: ảnh (phóng to bằng 2 ngón), câu đang đọc được tô sáng. Giữa: toàn bộ nội dung theo đoạn, chạm một câu để đọc.
  * Đáy (cố định): câu hiện tại + ba nút Câu trước / Đọc lại / Câu sau.
+ * Dùng cho cả bản vừa quét lẫn mục mở lại từ lịch sử (khi đó đọc tiếp từ câu đang dở); câu đang đọc được ghi vào lịch sử.
  */
 export default function ResultScreen() {
   const insets = useSafeAreaInsets();
@@ -40,9 +43,9 @@ export default function ResultScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
       <View style={styles.topBar}>
-        <BackButton onPress={() => router.back()} label="Quay lại camera" />
+        <BackButton onPress={() => router.back()} label={scan?.fromHistory ? 'Quay lại' : 'Quay lại camera'} />
         <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>
-          {scan?.flattened === false ? 'Ảnh gốc (không thấy trang giấy)' : 'Kết quả quét'}
+          {screenTitle(scan)}
         </Text>
       </View>
       {!scan ? (
@@ -55,6 +58,14 @@ export default function ResultScreen() {
       )}
     </View>
   );
+}
+
+function screenTitle(scan: Scan | null) {
+  if (scan?.fromHistory && scan.historyId) {
+    const item = getHistoryItem(scan.historyId);
+    if (item) return `Đã quét ${formatWhen(item.createdAt).toLowerCase()}`;
+  }
+  return scan?.flattened === false ? 'Ảnh gốc (không thấy trang giấy)' : 'Kết quả quét';
 }
 
 // ---------- Đang phân tích / lỗi ----------
@@ -109,19 +120,31 @@ function Reading({ scan, analysis }: { scan: Scan; analysis: Done }) {
   const [settings, updateSettings] = useScanSettings();
   const [zoomed, setZoomed] = useState(false);
   const { doc, layout } = analysis;
-  const reader = useReader(doc.sentences, { continuous: settings.continuous, rate: settings.speechRate });
+  // Mở lại từ lịch sử: bắt đầu ở câu đang đọc dở (đọc một lần lúc dựng màn; sau đó chính màn này cập nhật nó).
+  const [resumeAt] = useState(() => {
+    const saved = scan.historyId ? (getHistoryItem(scan.historyId)?.checkpoint ?? -1) : -1;
+    return Math.min(saved, doc.sentences.length - 1);
+  });
+  const reader = useReader(doc.sentences, { continuous: settings.continuous, rate: settings.speechRate }, resumeAt);
   const empty = doc.sentences.length === 0;
   const current = reader.index >= 0 ? doc.sentences[reader.index] : null;
 
-  // Có nội dung là đọc luôn câu đầu (người dùng không cần tìm nút).
+  // Có nội dung là đọc luôn (người dùng không cần tìm nút): câu đầu, hoặc câu đang dở nếu mở lại từ lịch sử.
   const started = useRef(false);
   const { speakAt } = reader;
   useEffect(() => {
     if (started.current || empty) return;
     started.current = true;
-    const t = setTimeout(() => speakAt(0), 350);
+    const t = setTimeout(() => speakAt(Math.max(0, resumeAt)), 350);
     return () => clearTimeout(t);
-  }, [empty, speakAt]);
+  }, [empty, speakAt, resumeAt]);
+
+  // Ghi nhớ câu đang đọc vào lịch sử. Bản vừa quét được lưu lịch sử ở nền nên historyId có thể tới sau vài trăm ms:
+  // khi nó tới, hiệu ứng này chạy lại và ghi luôn câu hiện tại.
+  const { historyId } = scan;
+  useEffect(() => {
+    if (historyId && reader.index >= 0) setCheckpoint(historyId, reader.index);
+  }, [historyId, reader.index]);
 
   // Cuộn danh sách tới đoạn chứa câu đang đọc.
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -275,7 +298,8 @@ function details(scan: Scan, a: Done) {
     `(${ocrSize[0]}×${ocrSize[1]}) · tách câu ${ms.compose} ms` +
     (ms.ocrLoad > 50 ? ` (trong đó chờ nạp bộ nhận dạng ${comma(ms.ocrLoad / 1000, 1)} s)` : '') +
     (ms.total > ANALYSIS_BUDGET_MS ? ` — VƯỢT mốc ${ANALYSIS_BUDGET_MS / 1000} s` : '') +
-    (layout ? '' : '\nKhông chạy được bước hướng trang / bố cục (coi như trang đã thẳng).')
+    (layout ? '' : '\nKhông chạy được bước hướng trang / bố cục (coi như trang đã thẳng).') +
+    (scan.fromHistory ? '\nMở từ lịch sử trên máy (thời gian ở trên là của lần quét).' : scan.historyId ? '\nĐã lưu vào lịch sử trên máy.' : '')
   );
 }
 
