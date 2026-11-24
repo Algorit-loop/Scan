@@ -16,8 +16,8 @@ var Tracker = (function () {
     jumpDist: 0.05, // theo góc lệch nhiều nhất: ứng viên sai thường chỉ lệch 1-2 góc
     holdMs: 450,
     fadeMs: 220,
-    steadyDist: 0.017, // : chừa rung tay, nhịp tim, hơi thở
-    steadyExitDist: 0.03, // : đã xanh thì phải dời máy thật mới mất
+    steadyDist: 0.017, // ~18 px trên màn 1080 px: chừa rung tay, nhịp tim, hơi thở
+    steadyExitDist: 0.03, // ~32 px, rộng hơn ngưỡng vào: đã xanh thì phải dời máy thật mới mất
     steadyMs: 500,
     // Bộ lọc One Euro; giá trị chọn bằng dò lưới trên video SmartDoc + kịch bản đứng yên (Core trang /video).
     minCutoff: 0.2, // Hz: tần số cắt khi đứng yên (thấp = lọc mạnh)

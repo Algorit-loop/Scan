@@ -57,7 +57,7 @@ describe('Tracker', () => {
     const t = Tracker.create();
     for (let now = 0; now <= 800; now += 50) Tracker.update(t, quad(), now);
     expect(Tracker.step(t, 800, 16).steady).toBe(true);
-    Tracker.update(t, quad(0.045), 850); // vượt ngưỡng ra 4%, dưới ngưỡng nhảy 5%
+    Tracker.update(t, quad(0.045), 850); // vượt ngưỡng ra 3%, dưới ngưỡng nhảy 5%
     expect(Tracker.step(t, 860, 16).steady).toBe(false);
   });
 
