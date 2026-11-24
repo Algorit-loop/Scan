@@ -1,6 +1,6 @@
 # Scan Trợ Giúp
 
-App giúp người khiếm thị quét tài liệu: hướng dẫn bằng giọng nói và rung cho tới khi tài liệu nằm đúng khung, rồi chụp lại thành ảnh phẳng, rõ.
+App giúp người khiếm thị quét tài liệu: hướng dẫn cho tới khi tài liệu nằm đúng khung, chụp lại thành ảnh phẳng, rõ, rồi nhận dạng chữ và đọc nội dung thành tiếng từng câu — tất cả chạy trên điện thoại, không cần mạng.
 
 ## Cấu trúc
 
@@ -63,8 +63,8 @@ App/
 ├── native/scan_api.cpp      cầu nối wasm: scan_detect (gọi dd3_detect), scan_warp (warpPerspective)
 ├── native/build-wasm.ps1    build OpenCV wasm (lần đầu) + docdetect -> native/build/docdetect.js
 ├── web/                     trang trong WebView: page.js (camera, vòng detect, vẽ, chụp), tracker.js, worker.js
-├── scripts/build-web.mjs    gói web/ + engine -> src/scanner/page.generated.ts
-└── src/app/                 index (trang chủ), scan (màn quét), result (ảnh nắn phẳng)
+├── scripts/build-web.mjs    gói web/ + engine -> src/scanner/page.generated.ts (+ src/layout/layout.generated.ts)
+└── src/app/                 index (trang chủ), scan (màn quét), result (ảnh nắn phẳng + bố cục)
 ```
 
 ```powershell
@@ -83,6 +83,97 @@ Trên màn quét có hai tùy chọn để thử (lưu trên máy): **Khung 256 
 Core\.venv\Scripts\python.exe App\native\verify\dump_native.py --per-set 40   # kết quả native -> .tmp/wasm-verify
 node App\native\verify\compare.mjs                                            # chạy wasm, so từng góc
 ```
+
+### App: đọc nội dung tài liệu (OCR + đọc từng câu)
+
+Sau khi chụp, app tự chạy cả dây chuyền trên máy (không mạng, không server) rồi đọc nội dung thành tiếng:
+
+```
+chụp (khung video 4K) -> tìm 4 góc + nắn phẳng (docdetect_v3 wasm)          [màn camera]
+  -> 1. hướng trang + bố cục   PP-LCNet doc_ori + PP-DocLayout-S (onnxruntime-web)   ~0,2-0,5 s
+  -> 2. xoay thẳng nếu trang bị xoay 90/180/270° (expo-image-manipulator)
+  -> 3. nhận dạng chữ          khử bóng + đổi cỡ (JS) -> Tesseract 5 LSTM tiếng Việt (WebAssembly)   ~1 s
+  -> 4. ghép đoạn + tách câu   (TypeScript thuần)
+  -> màn kết quả: nội dung theo đoạn, câu đang đọc tô sáng trên ảnh; đọc bằng giọng của máy (expo-speech)
+```
+
+**Màn kết quả**: thanh cố định ở đáy có ba nút to **Câu trước / Đọc lại / Câu sau**; có nội dung là đọc luôn câu đầu.
+Chạm một câu trong danh sách để đọc câu đó; chạm ô "câu hiện tại" để dừng. Tùy chọn: đọc từng câu / liên tục, tốc độ,
+ảnh "Rõ chữ" / gốc, hiện khung bố cục. Cuối trang có thời gian từng bước (mục tiêu ≤ 5 s từ lúc chụp xong).
+
+**Vì sao chọn như vậy** (đo trên máy tính, xem lệnh bên dưới):
+
+- *OCR = Tesseract (vie, tessdata_fast)*: PaddleOCR không có model nhận dạng tiếng Việt — bảng ký tự của
+  `latin_PP-OCRv5_mobile_rec` thiếu gần hết chữ có dấu (ạ, ấ, ề, ợ, ữ...). Tesseract có model riêng cho tiếng Việt, tự
+  phân tích bố cục (khối -> đoạn -> dòng, đọc đúng thứ tự cột), nhẹ (wasm 2,9 MB + dữ liệu 0,5 MB) và chạy bằng wasm
+  thường nên dùng được trong Expo Go trên cả iOS lẫn Android.
+- *Khử bóng trước khi OCR là bắt buộc*: Tesseract tách ngưỡng toàn cục, ảnh chụp có bóng đổ làm mất cả mảng chữ. Trên
+  bộ trang thử: sai ký tự 35% (không tiền xử lý) -> 1,4% (có).
+- *Độ phân giải quyết định độ chính xác*, nên camera mặc định là 4K (ảnh chụp lấy từ khung video):
+
+  | Bề rộng trang giấy | ứng với camera | Sai ký tự (CER) | Sai từ (WER) |
+  |---|---|---|---|
+  | 700 px | 1080p | 0,3 - 10 % | 1 - 17 % |
+  | 1000 px | | 0 - 0,8 % | 0 - 3,5 % |
+  | 1350 px | 4K | 0 - 0,5 % | 0 - 2,2 % |
+  | 1800 px | 4K, chụp gần | 0 - 0,6 % | 0 - 2,6 % |
+
+  (3 trang tổng hợp: thông báo, hướng dẫn dùng thuốc, bài báo 2 cột; có bóng đổ, lệch 0,6°, mờ nhẹ, JPEG. Chưa đo trên
+  ảnh chụp thật có đáp án.)
+- *Bố cục chỉ còn PP-DocLayout-S* và chỉ để hiển thị khung (tùy chọn): thứ tự đọc lấy từ Tesseract. PP-DocLayout-L /
+  plus-L (RT-DETR) đã bỏ khỏi app: trên iPhone (iOS 18, WKWebView + onnxruntime-web) bước suy luận không bao giờ xong
+  (> 120 s) với cả bản uint8 lẫn fp32, trong khi S chỉ 0,13 s; WebView iOS 18 không có WebGPU. (Nhiều khả năng L "treo" là
+  do WebView bị iOS cho ngủ như ghi chú bên dưới chứ không phải do model; chưa thử lại L sau khi sửa.)
+- *Tách câu* (`src/reading/compose.ts`): dấu `. ! ? …` kết câu trừ khi là viết tắt (TP., ThS., PGS., v.v.), tên viết
+  tắt (Nguyễn V. An), đầu mục (1., a., IV.), số thập phân / ngày tháng / số điện thoại, hoặc chữ sau viết thường; tiêu
+  đề không có dấu kết câu là một câu; dòng cuối ngắn của đoạn bị Tesseract tách rời được nối lại; câu dài hơn 260 ký tự
+  chia ở dấu `; : ,` gần giữa.
+
+```
+App/
+├── assets/ocr/                         vie.traineddata (tessdata_fast, Apache-2.0) + tesseract-core-simd-lstm.wasm
+├── assets/layout/                      pp_lcnet_doc_ori.onnx, pp_doclayout_s.onnx (+ onnxruntime wasm)
+├── web/ocr-prep.js                     tiền xử lý OCR: xám hóa, phóng to chữ nhỏ / thu ảnh quá lớn, khử bóng nền
+├── web/ocr-parse.js                    TSV của Tesseract -> dòng chữ có tọa độ + độ tin cậy
+├── web/ocr-worker.js, ocr-page.js      Worker chạy Tesseract; trang ẩn (file://) đọc wasm / dữ liệu / ảnh từ file
+├── web/layout.js, layout-worker.js,    hướng trang + PP-DocLayout (tiền / hậu xử lý như PaddleX), onnxruntime-web
+│   layout-page.js
+├── src/engine/enginePage.ts            chép asset vào cache + ghi trang cho một engine WebView ẩn
+├── src/ocr/OcrEngine.tsx               WebView ẩn nhận dạng chữ: recognizeText(uri)
+├── src/layout/LayoutEngine.tsx         WebView ẩn hướng trang + bố cục: analyzeLayout(uri)
+├── src/layout/status.ts                trạng thái nạp từng phần (trang chủ hiển thị)
+├── src/reading/runAnalysis.ts          dây chuyền 1 -> 4 cho bản quét hiện tại, cập nhật trạng thái cho màn kết quả
+├── src/reading/compose.ts              lọc rác OCR, ghép đoạn, tách câu
+├── src/reading/useReader.ts            điều khiển đọc từng câu (expo-speech): trước / đọc lại / sau, liên tục, tốc độ
+├── src/components/ReaderBar.tsx        ba nút đọc
+└── src/app/result.tsx                  màn kết quả
+```
+
+Hai engine (bố cục, OCR) là WebView ẩn mount ở `_layout.tsx`, nạp sẵn khi mở app; trang + asset ghi vào cache và mở bằng
+`file://`, phần nặng chạy trong Web Worker, qua cầu nối chỉ có message nhỏ. Hai WebView này phải luôn nằm trong cửa sổ:
+iOS cho tiến trình của WKWebView không thuộc cửa sổ nào ngủ sau một khoảnh khắc, nên việc dài vài giây bị đóng băng giữa
+chừng (triệu chứng: bước nhận dạng chữ / suy luận model lớn không bao giờ xong, việc ngắn vẫn chạy). Vì vậy màn quét và
+màn kết quả là màn kiểu thường (card), KHÔNG phải `fullScreenModal` — modal toàn màn hình gỡ gốc app khỏi cửa sổ. Mỗi
+yêu cầu, trang ghi `visible` / `hidden` ra log (`[ocr] trang …`, `[layout] trang …`) để kiểm tra trên máy thật. `useSharedProcessPool={false}` để engine
+không kéo chết WebView camera. Wasm của onnxruntime (14 MB) và Tesseract (2,9 MB) chép từ `node_modules` khi
+`npm install` / `npm run build:web` (không commit).
+
+Kiểm tra trên máy tính:
+
+```powershell
+# Từ Core/ (môi trường .tools/paddle-venv có Pillow + opencv): sinh bộ trang tiếng Việt có đáp án vào .tmp/ocr-testset
+..\.tools\paddle-venv\Scripts\python.exe -m tools.make_ocr_testset
+# Từ App/: chạy đúng pipeline OCR của app (ocr-prep.js + Tesseract wasm + ocr-parse.js), in CER / WER / thời gian
+npm run check:ocr -- ..\.tmp\ocr-testset\thongbao_1350.jpg [--show] [--raw] [--json]
+npm test            # tách câu (kể cả trên kết quả OCR thật trong src/__tests__/fixtures), tiền xử lý, bố cục
+# Model: S (checkpoint Paddle -> ONNX, so Paddle gốc) và doc_ori; thêm --l để tạo PP-DocLayout-L cho máy tính
+..\.tools\paddle-venv\Scripts\python.exe -m tools.export_layout_onnx ảnh.jpg --paddlex-ref
+..\.tools\paddle-venv\Scripts\python.exe -m tools.export_layout_extra [--l ảnh.jpg]
+npm run check:layout -- ảnh.jpg
+```
+
+Chưa làm: bản `AndroidApp/` (APK, onnxruntime native) chưa được cập nhật theo dây chuyền mới — danh sách đồng bộ đã thêm
+`src/ocr`, `src/reading`, `src/engine`, `web/ocr*` nhưng `LayoutEngine` / `build-web` riêng của nó cần sửa theo rồi build lại.
 
 ### Detect v3 (C++)
 

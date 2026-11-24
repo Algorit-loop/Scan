@@ -13,7 +13,8 @@ const TypedWebView = WebView as unknown as ComponentType<WebViewProps & RefAttri
 /** Gợi ý do trang quét tính (web/page.js > computeHint). */
 export type Hint = 'starting' | 'no-engine' | 'search' | 'dark' | 'closer' | 'farther' | 'hold' | 'ready' | 'found';
 
-export type Captured = { data: string; width: number; height: number; flattened: boolean };
+/** data: JPEG base64 ảnh nắn phẳng; enhanced: bản "Rõ chữ" (chỉ có khi nắn phẳng được). */
+export type Captured = { data: string; enhanced?: string; width: number; height: number; flattened: boolean };
 
 export type Perf = { fps: number; ms: number; rt: number };
 
@@ -49,13 +50,16 @@ export const ScannerView = forwardRef<ScannerHandle, Props>(function ScannerView
   const post = useCallback((msg: object) => {
     webview.current?.injectJavaScript(`window.__rn && window.__rn(${JSON.stringify(msg)}); true;`);
   }, []);
-  const sendConfig = useCallback(() => post({ type: 'config', ...handlers.current.settings }), [post]);
+  const sendConfig = useCallback(() => {
+    const { detectSide: d, tracker: t, cameraHeight: c } = handlers.current.settings;
+    post({ type: 'config', detectSide: d, tracker: t, cameraHeight: c });
+  }, [post]);
 
   // Đổi tùy chọn -> báo trang ngay (trang cũng nhận lại khi camera/engine sẵn sàng, phòng lúc chưa tải xong).
-  const { detectSide, tracker } = props.settings;
+  const { detectSide, tracker, cameraHeight } = props.settings;
   useEffect(() => {
-    post({ type: 'config', detectSide, tracker });
-  }, [post, detectSide, tracker]);
+    post({ type: 'config', detectSide, tracker, cameraHeight });
+  }, [post, detectSide, tracker, cameraHeight]);
 
   useImperativeHandle(ref, () => ({
     capture(timeoutMs = 15000) {
@@ -110,7 +114,7 @@ export const ScannerView = forwardRef<ScannerHandle, Props>(function ScannerView
         break;
       case 'captured':
         settle(msg.id, (p) =>
-          p.resolve({ data: msg.data, width: msg.width, height: msg.height, flattened: !!msg.flattened }),
+          p.resolve({ data: msg.data, enhanced: msg.enhanced, width: msg.width, height: msg.height, flattened: !!msg.flattened }),
         );
         break;
       case 'captureError':

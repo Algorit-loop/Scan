@@ -29,7 +29,8 @@
           "cameraPermission": "Ứng dụng cần camera để chụp tài liệu.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }

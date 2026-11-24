@@ -4,12 +4,14 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScanIcon } from '../components/ScanIcon';
+import { allReady, describe, type EngineName, useEngineStatus } from '../layout/status';
 import { colors, font } from '../theme';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const blocked = permission != null && !permission.granted && !permission.canAskAgain;
+  const engine = useEngineStatus();
 
   const openScanner = async () => {
     if (blocked) {
@@ -26,7 +28,7 @@ export default function HomeScreen() {
         <Text style={styles.title} accessibilityRole="header">
           Scan
         </Text>
-        <Text style={styles.subtitle}>Quét tài liệu thành ảnh phẳng, rõ nét.</Text>
+        <Text style={styles.subtitle}>Quét tài liệu rồi nghe đọc từng câu.</Text>
       </View>
 
       <Pressable
@@ -40,14 +42,27 @@ export default function HomeScreen() {
         </View>
         <Text style={styles.cardTitle}>Quét tài liệu</Text>
         <Text style={styles.cardBody}>
-          {blocked ? 'Camera đang bị chặn — chạm để mở Cài đặt.' : 'Đưa trang giấy vào khung, giữ yên rồi bấm chụp.'}
+          {blocked ? 'Camera đang bị chặn — chạm để mở Cài đặt.' : 'Đưa trang giấy vào khung, giữ yên rồi bấm chụp. Máy sẽ đọc nội dung thành tiếng.'}
         </Text>
       </Pressable>
 
-      <View />
+      <View style={styles.engine} accessibilityLiveRegion="polite">
+        <Text style={styles.engineTitle}>Bộ xử lý trên máy</Text>
+        {PARTS.map(([label, names]) => (
+          <Text key={label} style={styles.engineLine}>
+            {allReady(engine, names) ? '●' : '○'} {label}: {describe(engine, names)}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
+
+/** Các phần nạp sẵn lúc mở app (chạy trong WebView ẩn, không cần mạng). */
+const PARTS: [string, EngineName[]][] = [
+  ['Nhận dạng chữ tiếng Việt', ['ocr']],
+  ['Hướng trang + bố cục', ['ori', 'S']],
+];
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: 24, justifyContent: 'space-between' },
@@ -73,4 +88,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: { color: colors.text, fontSize: font.title, fontWeight: '700' },
   cardBody: { color: colors.textMuted, fontSize: font.body, textAlign: 'center', lineHeight: 26 },
+  engine: { gap: 2 },
+  engineTitle: { color: colors.textMuted, fontSize: font.small, fontWeight: '700' },
+  engineLine: { color: colors.textMuted, fontSize: font.small },
 });

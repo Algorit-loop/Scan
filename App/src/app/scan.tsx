@@ -5,9 +5,11 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Segment, SEGMENT_H } from '../components/Segment';
+import { runAnalysis } from '../reading/runAnalysis';
 import { saveScan } from '../scanner/lastScan';
 import { type Hint, type Perf, type ScannerHandle, ScannerView } from '../scanner/ScannerView';
-import { type ScanSettings, useScanSettings } from '../scanner/settings';
+import { useScanSettings } from '../scanner/settings';
 import { colors, font, MIN_TOUCH } from '../theme';
 
 const HINT_TEXT: Record<Hint, string> = {
@@ -59,7 +61,9 @@ export default function ScanScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     try {
       const shot = await scanner.current.capture();
-      await saveScan(shot.data, { width: shot.width, height: shot.height, flattened: shot.flattened });
+      await saveScan(shot.data, { width: shot.width, height: shot.height, flattened: shot.flattened }, shot.enhanced);
+      // Phân tích chạy nền ngay (hướng trang -> nhận dạng chữ -> tách câu); màn kết quả hiện tiến độ rồi nội dung.
+      runAnalysis();
       router.push('/result');
     } catch (e) {
       setError((e as Error).message);
@@ -109,6 +113,15 @@ export default function ScanScreen() {
             options={[[true, 'Tracker'], [false, 'Không']]}
             onChange={(tracker) => updateSettings({ tracker })}
           />
+          <Segment
+            label="Camera"
+            value={settings.cameraHeight}
+            options={[[1080, '1080p'], [2160, '4K']]}
+            onChange={(cameraHeight) => {
+              setPerf(null);
+              updateSettings({ cameraHeight });
+            }}
+          />
         </View>
       </View>
 
@@ -142,41 +155,7 @@ export default function ScanScreen() {
   );
 }
 
-function Segment<T extends ScanSettings[keyof ScanSettings]>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: [T, string][];
-  onChange: (v: T) => void;
-}) {
-  return (
-    <View style={styles.segment} accessibilityRole="radiogroup" accessibilityLabel={label}>
-      {options.map(([v, text]) => {
-        const on = v === value;
-        return (
-          <Pressable
-            key={String(v)}
-            onPress={() => onChange(v)}
-            style={[styles.segItem, on && styles.segOn]}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
-            accessibilityLabel={`${label} ${text}`}
-            hitSlop={4}
-          >
-            <Text style={[styles.segText, on && styles.segTextOn]}>{text}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-const SEGMENT_H = 38; // 32 + đệm 2 × 3
-const OPTIONS_HEIGHT = SEGMENT_H * 2 + 8;
+const OPTIONS_HEIGHT = SEGMENT_H * 3 + 16;
 const SHUTTER = 80;
 const INNER = SHUTTER - 16;
 
@@ -193,11 +172,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   options: { gap: 8, alignItems: 'flex-start' },
-  segment: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 18, padding: 3 },
-  segItem: { minWidth: 64, height: 32, paddingHorizontal: 10, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  segOn: { backgroundColor: colors.accent },
-  segText: { color: colors.text, fontSize: font.small, fontWeight: '600' },
-  segTextOn: { color: colors.onAccent },
   close: {
     width: MIN_TOUCH,
     height: MIN_TOUCH,

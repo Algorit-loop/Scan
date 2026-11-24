@@ -4,10 +4,11 @@
  * Nhận:  { type: 'detect',  id, w, h, buffer }              buffer: RGBA của khung nhỏ
  *        { type: 'capture', id, w, h, buffer, hint, maxSide } buffer: RGBA độ phân giải gốc; hint: 8 số chuẩn hóa | null
  * Gửi:   { type: 'ready' } | { type: 'fatal', message }
- *        { type: 'detect', id, result } | { type: 'capture', id, w, h, buffer, flattened, corners }
+ *        { type: 'detect', id, result } | { type: 'capture', id, w, h, buffer, enhanced, flattened, corners }
+ *        (enhanced: RGBA bản "Rõ chữ" cùng cỡ, hoặc null)
  *        { type: <loại>, id, error }
  */
-/* global createDocDetect */
+/* global createDocDetect, Enhance */
 var mod = null;
 var loading = null;
 var outPtr = 0;
@@ -103,7 +104,9 @@ function capture(bytes, w, h, hint, maxSide) {
     if (mod._scan_warp(bufPtr, w, h, cornersPtr, ow, oh, dstPtr) !== 0) throw new Error('scan_warp thất bại');
     var out = new Uint8ClampedArray(ow * oh * 4);
     out.set(mod.HEAPU8.subarray(dstPtr, dstPtr + ow * oh * 4));
-    return { w: ow, h: oh, bytes: out, flattened: true, corners: q };
+    // Bản "Rõ chữ" (web/enhance.js, ghép trước file này khi build; trang /video của Core không có nên bỏ qua).
+    var enhanced = typeof Enhance !== 'undefined' ? Enhance.documentEnhance(out, ow, oh) : null;
+    return { w: ow, h: oh, bytes: out, enhanced: enhanced, flattened: true, corners: q };
   } finally {
     mod._free(cornersPtr);
     mod._free(dstPtr);
@@ -120,9 +123,10 @@ self.onmessage = function (e) {
       } else if (msg.type === 'capture') {
         var c = capture(bytes, msg.w, msg.h, msg.hint, msg.maxSide);
         var buf = c.bytes.buffer;
+        var enh = c.enhanced ? c.enhanced.buffer : null;
         self.postMessage(
-          { type: 'capture', id: msg.id, w: c.w, h: c.h, buffer: buf, flattened: c.flattened, corners: c.corners },
-          [buf],
+          { type: 'capture', id: msg.id, w: c.w, h: c.h, buffer: buf, enhanced: enh, flattened: c.flattened, corners: c.corners },
+          enh ? [buf, enh] : [buf],
         );
       }
     })

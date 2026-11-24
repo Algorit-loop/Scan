@@ -63,3 +63,9 @@ Core/native/docdetect/build/
 Core/native/docdetect_v3/build/
 # build WebAssembly cua app (App/native/build-wasm.ps1)
 App/native/build/
+# onnxruntime-web wasm (14 MB), chep tu node_modules khi npm install / build:web
+App/assets/layout/ort-wasm-simd-threaded.wasm
+App/assets/ocr/tesseract-core-simd-lstm.wasm
+
+# AndroidApp
+AndroidApp/

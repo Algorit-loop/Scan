@@ -9,10 +9,10 @@
  *   3. Kết quả về -> (Tracker lọc) -> gợi ý (hint) gửi app khi đổi.
  * Chụp: lấy vùng nhìn thấy ở độ phân giải gốc -> Worker detect lại + warpPerspective -> JPEG base64 về app.
  *
- * app -> trang: window.__rn({ type: 'capture', id } | { type: 'resume' } | { type: 'config', detectSide, tracker })
+ * app -> trang: window.__rn({ type: 'capture', id } | { type: 'resume' } | { type: 'config', detectSide, tracker, cameraHeight })
  * trang -> app: { type: 'camera', width, height } | { type: 'engine', ok, message? } | { type: 'error', message }
  *               { type: 'status', hint, steady } | { type: 'perf', fps, ms, rt }
- *               { type: 'captured', id, data, width, height, flattened } | { type: 'captureError', id, message }
+ *               { type: 'captured', id, data, enhanced?, width, height, flattened }   (enhanced: JPEG bản "Rõ chữ") | { type: 'captureError', id, message }
  */
 /* global Tracker, ENGINE_SRC, WORKER_SRC */
 (function () {
@@ -39,6 +39,7 @@
   var tracker = Tracker.create();
   var detectSide = DETECT_SIDE;
   var useTracker = true;
+  var cameraHeight = 1080; // độ phân giải luồng camera xin (1080 hoặc 2160 = 4K); ảnh chụp lấy từ khung video
   var rawQuad = null; // chế độ không Tracker: kết quả detect mới nhất
   var frameCallbackOn = false;
   var newFrame = true; // có khung camera mới chưa detect (requestVideoFrameCallback; không có thì luôn true)
@@ -312,23 +313,22 @@
     }
   }
 
+  function toJpeg(buffer, w, h) {
+    big.width = w;
+    big.height = h;
+    bctx.putImageData(new ImageData(new Uint8ClampedArray(buffer), w, h), 0, 0);
+    var url = big.toDataURL('image/jpeg', JPEG_QUALITY);
+    return url.slice(url.indexOf(',') + 1);
+  }
+
   function onCaptured(m) {
     if (m.error) return captureError(m.id, m.error);
     try {
-      big.width = m.w;
-      big.height = m.h;
-      bctx.putImageData(new ImageData(new Uint8ClampedArray(m.buffer), m.w, m.h), 0, 0);
-      var url = big.toDataURL('image/jpeg', JPEG_QUALITY);
+      var data = toJpeg(m.buffer, m.w, m.h);
+      var enhanced = m.enhanced ? toJpeg(m.enhanced, m.w, m.h) : undefined;
       big.width = big.height = 1; // trả bộ nhớ canvas
       capturing = false;
-      send({
-        type: 'captured',
-        id: m.id,
-        data: url.slice(url.indexOf(',') + 1),
-        width: m.w,
-        height: m.h,
-        flattened: m.flattened,
-      });
+      send({ type: 'captured', id: m.id, data: data, enhanced: enhanced, width: m.w, height: m.h, flattened: m.flattened });
     } catch (e) {
       captureError(m.id, errText(e));
     }
@@ -344,6 +344,18 @@
     if (typeof msg.tracker === 'boolean' && msg.tracker !== useTracker) {
       useTracker = msg.tracker;
       resetView();
+    }
+    if ((msg.cameraHeight === 1080 || msg.cameraHeight === 2160) && msg.cameraHeight !== cameraHeight) {
+      cameraHeight = msg.cameraHeight;
+      // Mở lại camera ở độ phân giải mới (máy không hỗ trợ thì trình duyệt tự chọn mức gần nhất).
+      var old = video.srcObject;
+      if (old) {
+        old.getTracks().forEach(function (t) {
+          t.stop();
+        });
+        video.srcObject = null;
+        if (!capturing) startCamera();
+      }
     }
     perf = { n: 0, ms: 0, rt: 0, since: performance.now() };
     sentHint = sentSteady = hintCandidate = null;
@@ -378,7 +390,11 @@
     navigator.mediaDevices
       .getUserMedia({
         audio: false,
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: Math.round((cameraHeight * 16) / 9) },
+          height: { ideal: cameraHeight },
+        },
       })
       .then(function (stream) {
         video.srcObject = stream;
