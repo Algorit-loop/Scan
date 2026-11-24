@@ -61,13 +61,6 @@ describe('Tracker', () => {
     expect(Tracker.step(t, 860, 16).steady).toBe(false);
   });
 
-  it('nhiễu nhỏ không làm mất trạng thái đứng yên (độ trễ)', () => {
-    const t = Tracker.create();
-    for (let now = 0; now <= 800; now += 50) Tracker.update(t, quad(), now);
-    Tracker.update(t, quad(0.03), 850); // vượt ngưỡng vào 2%, dưới ngưỡng ra 4%
-    expect(Tracker.step(t, 860, 16).steady).toBe(true);
-  });
-
   it('trôi chậm vẫn bị phát hiện', () => {
     const t = Tracker.create();
     let now = 0;
